@@ -1,14 +1,16 @@
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 
 function App() {
   return (
-    <div>
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      height: '100%',
+    }}>
       <Typography variant="h3" component="h2">
-        Welcome to Vite + Material UI
-      </Typography>
-      <Button variant="contained" color="primary">
-        Get Started
-      </Button>
+        Hello World!!
+      </Typography>  
     </div>
   );
 }
