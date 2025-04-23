@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
@@ -163,7 +163,7 @@ export default function HomeLayout() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
-          <Route path="/" element={<Typography>Welcome to the App!</Typography>} />
+          <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
       </Main>
     </Box>
