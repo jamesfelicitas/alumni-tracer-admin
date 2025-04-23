@@ -17,16 +17,12 @@ import ListItem from '@mui/material/ListItem';
 import ListItemButton from '@mui/material/ListItemButton';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
-import InboxIcon from '@mui/icons-material/MoveToInbox';
-import MailIcon from '@mui/icons-material/Mail';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Starred from './pages/Starred';
-import SendEmail from './pages/SendEmail';
-import Drafts from './pages/Drafts';
-import { DashboardCustomizeOutlined, Logout } from '@mui/icons-material';
+import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
+import DataTables from './pages/DataTables';
 
 const drawerWidth = 240;
 
@@ -97,9 +93,7 @@ export default function HomeLayout() {
 
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
-    { text: 'Starred', path: '/home/starred', icon: <MailIcon /> },
-    { text: 'Send Email', path: '/home/send-email', icon: <InboxIcon /> },
-    { text: 'Drafts', path: '/home/drafts', icon: <MailIcon /> },
+    { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
   ];
 
   return (
@@ -168,9 +162,7 @@ export default function HomeLayout() {
         <DrawerHeader />
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/starred" element={<Starred />} />
-          <Route path="/send-email" element={<SendEmail />} />
-          <Route path="/drafts" element={<Drafts />} />
+          <Route path="/datatables" element={<DataTables />} />
           <Route path="/" element={<Typography>Welcome to the App!</Typography>} />
         </Routes>
       </Main>
