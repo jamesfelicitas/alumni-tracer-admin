@@ -19,13 +19,14 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
-import AccountCircle from '@mui/icons-material/AccountCircle'; // Import Profile Icon
+import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
-import Inbox from './pages/Inbox';
 import Starred from './pages/Starred';
 import SendEmail from './pages/SendEmail';
 import Drafts from './pages/Drafts';
+import { DashboardCustomizeOutlined, Logout } from '@mui/icons-material';
+import Dashboard from './pages/Dashboard';
 
 const drawerWidth = 240;
 
@@ -59,7 +60,6 @@ const DrawerHeader = styled('div')(({ theme }) => ({
   ...theme.mixins.toolbar,
   justifyContent: 'flex-end',
 }));
-
 
 export default function HomeLayout() {
   const theme = useTheme();
@@ -96,11 +96,10 @@ export default function HomeLayout() {
   };
 
   const drawerItems = [
-    { text: 'Inbox', path: '/home/inbox', icon: <InboxIcon /> },
+    { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
     { text: 'Starred', path: '/home/starred', icon: <MailIcon /> },
     { text: 'Send Email', path: '/home/send-email', icon: <InboxIcon /> },
     { text: 'Drafts', path: '/home/drafts', icon: <MailIcon /> },
-    { text: 'Logout', action: () => navigate('/'), icon: <MailIcon /> },
   ];
 
   return (
@@ -143,28 +142,32 @@ export default function HomeLayout() {
         </DrawerHeader>
         <Divider />
         <List>
-          {drawerItems.map(({ text, path, icon, action }) => (
+          {drawerItems.map(({ text, path, icon }) => (
             <ListItem key={text} disablePadding>
-              {path ? (
-                <ListItemButton component={Link} to={path}>
-                  <ListItemIcon>{icon}</ListItemIcon>
-                  <ListItemText primary={text} />
-                </ListItemButton>
-              ) : (
-                <ListItemButton onClick={action}>
-                  <ListItemIcon>{icon}</ListItemIcon>
-                  <ListItemText primary={text} />
-                </ListItemButton>
-              )}
+              <ListItemButton component={Link} to={path}>
+                <ListItemIcon>{icon}</ListItemIcon>
+                <ListItemText primary={text} />
+              </ListItemButton>
             </ListItem>
           ))}
+        </List>
+
+        <Divider />
+        {/* Separate Logout item */}
+        <List>
+          <ListItem disablePadding>
+            <ListItemButton onClick={handleLogout}>
+              <ListItemIcon><Logout /></ListItemIcon> {/* You can use a different icon for logout if you prefer */}
+              <ListItemText primary="Logout" />
+            </ListItemButton>
+          </ListItem>
         </List>
         <Divider />
       </Drawer>
       <Main open={open}>
         <DrawerHeader />
         <Routes>
-          <Route path="/inbox" element={<Inbox />} />
+          <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/starred" element={<Starred />} />
           <Route path="/send-email" element={<SendEmail />} />
           <Route path="/drafts" element={<Drafts />} />
