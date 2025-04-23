@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Routes, Route, Link, useNavigate } from 'react-router-dom'; // Added useNavigate import
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import Box from '@mui/material/Box';
 import Drawer from '@mui/material/Drawer';
@@ -19,6 +19,9 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
 import InboxIcon from '@mui/icons-material/MoveToInbox';
 import MailIcon from '@mui/icons-material/Mail';
+import AccountCircle from '@mui/icons-material/AccountCircle'; // Import Profile Icon
+import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Inbox from './pages/Inbox';
 import Starred from './pages/Starred';
 import SendEmail from './pages/SendEmail';
@@ -61,19 +64,44 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 export default function HomeLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
-  const navigate = useNavigate(); // Added useNavigate hook
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null); // State for the menu anchor
+  const navigate = useNavigate();
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget); // Open the menu
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null); // Close the menu
+  };
+
+  const handleProfile = () => {
+    // Navigate to profile page or handle profile action
+    console.log('Go to Profile');
+    handleMenuClose();
+  };
+
+  const handleSettings = () => {
+    // Navigate to settings page or handle settings action
+    console.log('Go to Settings');
+    handleMenuClose();
+  };
+
+  const handleLogout = () => {
+    navigate('/'); // Logout action (navigate to login page)
+    handleMenuClose();
+  };
 
   const drawerItems = [
     { text: 'Inbox', path: '/home/inbox', icon: <InboxIcon /> },
     { text: 'Starred', path: '/home/starred', icon: <MailIcon /> },
     { text: 'Send Email', path: '/home/send-email', icon: <InboxIcon /> },
     { text: 'Drafts', path: '/home/drafts', icon: <MailIcon /> },
-    { text: 'Logout', action: () => navigate('/'), icon: <MailIcon /> }, // Added navigate to login
+    { text: 'Logout', action: () => navigate('/'), icon: <MailIcon /> },
   ];
-  
 
   return (
     <Box sx={{ display: 'flex' }}>
@@ -84,6 +112,22 @@ export default function HomeLayout() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap>Persistent Drawer</Typography>
+
+          {/* Profile Icon Button on AppBar */}
+          <IconButton color="inherit" onClick={handleMenuClick} sx={{ ml: 'auto' }}>
+            <AccountCircle /> {/* Profile icon */}
+          </IconButton>
+
+          {/* Menu for Profile, Settings, and Logout */}
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={handleMenuClose}
+          >
+            <MenuItem onClick={handleProfile}>Profile</MenuItem>
+            <MenuItem onClick={handleSettings}>Settings</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -115,7 +159,6 @@ export default function HomeLayout() {
             </ListItem>
           ))}
         </List>
-
         <Divider />
       </Drawer>
       <Main open={open}>
