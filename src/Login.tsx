@@ -11,7 +11,7 @@ const Login: React.FC = () => {
     e.preventDefault();
     console.log('navigating to /home');
     // Handle login logic here
-    navigate('/home/*');
+    navigate('/home/dashboard');
   };
 
   return (
