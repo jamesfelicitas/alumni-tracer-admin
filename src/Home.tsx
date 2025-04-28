@@ -20,6 +20,8 @@ import ListItemText from '@mui/material/ListItemText';
 import AccountCircle from '@mui/icons-material/AccountCircle';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import Avatar from '@mui/material/Avatar';
+import Stack from '@mui/material/Stack';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
@@ -59,7 +61,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function HomeLayout() {
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(true); // Set to true to open the drawer by default
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null); // State for the menu anchor
   const navigate = useNavigate();
 
@@ -104,7 +106,7 @@ export default function HomeLayout() {
           <IconButton color="inherit" onClick={handleDrawerOpen} edge="start" sx={{ mr: 2, ...(open && { display: 'none' }) }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap>Persistent Drawer</Typography>
+          <Typography variant="h6" noWrap>Dashboard</Typography>
 
           {/* Profile Icon Button on AppBar */}
           <IconButton color="inherit" onClick={handleMenuClick} sx={{ ml: 'auto' }}>
@@ -123,6 +125,7 @@ export default function HomeLayout() {
           </Menu>
         </Toolbar>
       </AppBar>
+
       <Drawer
         sx={{ width: drawerWidth, flexShrink: 0, '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' } }}
         variant="persistent"
@@ -134,6 +137,25 @@ export default function HomeLayout() {
             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </DrawerHeader>
+        <Stack 
+            direction="column" 
+            spacing={2} 
+            sx={{ 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              width: '100%', 
+            }}
+          >
+            <Avatar 
+              alt="Remy Sharp" 
+              src="/static/images/avatar/5.jpg" 
+              sx={{ 
+                width: 100, 
+                height: 100, 
+              }} 
+            />
+            <h3>Hello User!</h3>
+          </Stack>
         <Divider />
         <List>
           {drawerItems.map(({ text, path, icon }) => (
