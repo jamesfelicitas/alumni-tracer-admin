@@ -200,97 +200,103 @@ const Dashboard = () => {
             <StatCard title={stat.title} value={stat.value} color={stat.color} />
           </Grid>
         ))}
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: 400 }}>
-            <CardContent sx={{ height: '100%' }}>
-              <Typography variant="h6" gutterBottom>
-                Alumni Activity Over Time
-              </Typography>
-              <ResponsiveContainer width="100%" height="80%">
-                <LineChart data={alumniData?.activity || []}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Line 
-                    type="monotone" 
-                    dataKey="newAlumni" 
-                    stroke={theme.palette.primary.main} 
-                    activeDot={{ r: 8 }} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="activeAlumni" 
-                    stroke={theme.palette.success.main} 
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="inactiveAlumni" 
-                    stroke={theme.palette.warning.main} 
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
-          <Card sx={{ height: 400 }}>
-            <CardContent sx={{ height: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        
+        <Grid container spacing={3}>
+          {/* First grid item: 1/3 of the screen */}
+          <Grid item xs={12} md={4}>  {/* 1/3 of the screen */}
+            <Card sx={{ height: 400 }}>
+              <CardContent sx={{ height: '100%' }}>
                 <Typography variant="h6" gutterBottom>
-                  Alumni Locations
+                  Alumni Activity Over Time
                 </Typography>
-                <FormControl size="small" sx={{ minWidth: 120 }}>
-                  <InputLabel>Filter by college</InputLabel>
-                  <Select
-                    value={collegeFilter}
-                    label="Filter by college"
-                    onChange={handlecollegeFilterChange}
+                <ResponsiveContainer width="100%" height="80%">
+                  <LineChart data={alumniData?.activity || []}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="month" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line 
+                      type="monotone" 
+                      dataKey="newAlumni" 
+                      stroke={theme.palette.primary.main} 
+                      activeDot={{ r: 8 }} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="activeAlumni" 
+                      stroke={theme.palette.success.main} 
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="inactiveAlumni" 
+                      stroke={theme.palette.warning.main} 
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          {/* Second grid item: 2/3 of the screen */}
+          <Grid item xs={12} md={8}>  {/* 2/3 of the screen */}
+            <Card sx={{ height: 800 }}>
+              <CardContent sx={{ height: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Typography variant="h6" gutterBottom>
+                    Alumni Locations
+                  </Typography>
+                  <FormControl size="small" sx={{ minWidth: 120 }}>
+                    <InputLabel>Filter by college</InputLabel>
+                    <Select
+                      value={collegeFilter}
+                      label="Filter by college"
+                      onChange={handlecollegeFilterChange}
+                    >
+                      <MenuItem value="all">All College</MenuItem>
+                      <MenuItem value="IBM">IBM</MenuItem>
+                      <MenuItem value="ICS">ICS</MenuItem>
+                      <MenuItem value="ITE">ITE</MenuItem>
+                    </Select>
+                  </FormControl>
+                </div>
+                <div style={{ height: '85%', width: '100%', position: 'relative' }}>
+                  <MapContainer
+                    center={mapCenter}
+                    zoom={initialZoom}
+                    scrollWheelZoom={true}
+                    style={{ height: '100%', width: '100%' }}
                   >
-                    <MenuItem value="all">All College</MenuItem>
-                    <MenuItem value="IBM">IBM</MenuItem>
-                    <MenuItem value="ICS">ICS</MenuItem>
-                    <MenuItem value="ITE">ITE</MenuItem>
-                  </Select>
-                </FormControl>
-              </div>
-              <div style={{ height: '85%', width: '100%', position: 'relative' }}>
-                <MapContainer
-                  center={mapCenter}
-                  zoom={initialZoom}
-                  scrollWheelZoom={true}
-                  style={{ height: '100%', width: '100%' }}
-                >
-                  <TileLayer
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                  />
-                  <MarkerClusterGroup
-                    iconCreateFunction={createClusterCustomIcon}
-                    showCoverageOnHover={false}
-                    spiderfyOnMaxZoom={true}
-                  >
-                    {filteredLocations.map((location) => (
-                      <Marker key={location.id} position={location.position}>
-                        <Popup>
-                          <div>
-                            <strong>{location.name}</strong>
-                            <div>college: {location.college}</div>
-                            <div>Status: {location.status}</div>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ))}
-                  </MarkerClusterGroup>
-                  <ResetViewControl center={mapCenter} zoom={initialZoom} />
-                </MapContainer>
-              </div>
-            </CardContent>
-          </Card>
+                    <TileLayer
+                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                    />
+                    <MarkerClusterGroup
+                      iconCreateFunction={createClusterCustomIcon}
+                      showCoverageOnHover={false}
+                      spiderfyOnMaxZoom={true}
+                    >
+                      {filteredLocations.map((location) => (
+                        <Marker key={location.id} position={location.position}>
+                          <Popup>
+                            <div>
+                              <strong>{location.name}</strong>
+                              <div>college: {location.college}</div>
+                              <div>Status: {location.status}</div>
+                            </div>
+                          </Popup>
+                        </Marker>
+                      ))}
+                    </MarkerClusterGroup>
+                    <ResetViewControl center={mapCenter} zoom={initialZoom} />
+                  </MapContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </Grid>
         </Grid>
+
+
       </Grid>
     </div>
   );
