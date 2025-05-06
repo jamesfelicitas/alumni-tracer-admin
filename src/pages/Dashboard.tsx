@@ -32,6 +32,42 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+// Custom colored icons for different colleges
+const collegeIcons: Record<string, L.Icon> = {
+  IBM: new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-yellow.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }),
+  ICS: new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }),
+  ITE: new L.Icon({
+    iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  }),
+  Other: new L.Icon({
+    iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
+  })
+};
+
 // Types
 interface AlumniData {
   stats: {
@@ -118,14 +154,13 @@ const StatCard = ({ title, value, color }: StatCardProps) => {
 const Dashboard = () => {
   const theme = useTheme();
   const [alumniData, setAlumniData] = useState<AlumniData | null>(null);
-  const [collegeFilter, setcollegeFilter] = useState<string>('all');
+  const [collegeFilter, setCollegeFilter] = useState<string>('all');
   const mapCenter: [number, number] = [8.359724960609691, 124.86915063536755];
   const initialZoom = 12;
 
   useEffect(() => {
     // Simulate loading data from a JSON file
     const fetchData = async () => {
-      // In a real app, you would fetch this from an actual JSON file
       const mockData: AlumniData = {
         stats: {
           newAlumni: 42,
@@ -149,7 +184,6 @@ const Dashboard = () => {
           { id: 6, name: 'Diana Miller', position: [8.3570, 124.8670], college: 'ITE', status: 'inactive' },
           { id: 7, name: 'Evan Davis', position: [8.3630, 124.8730], college: 'IBM', status: 'active' },
           { id: 8, name: 'Fiona Garcia', position: [8.3560, 124.8660], college: 'Other', status: 'new' },
-          // Add more sample data for better clustering visualization
           { id: 9, name: 'George Harris', position: [8.3595, 124.8695], college: 'IBM', status: 'active' },
           { id: 10, name: 'Hannah Lee', position: [8.3593, 124.8693], college: 'ICS', status: 'active' },
           { id: 11, name: 'Ian Clark', position: [8.3592, 124.8692], college: 'ITE', status: 'inactive' },
@@ -163,8 +197,8 @@ const Dashboard = () => {
     fetchData();
   }, []);
 
-  const handlecollegeFilterChange = (event: SelectChangeEvent) => {
-    setcollegeFilter(event.target.value as string);
+  const handleCollegeFilterChange = (event: SelectChangeEvent) => {
+    setCollegeFilter(event.target.value as string);
   };
 
   const filteredLocations = alumniData?.locations.filter(location => 
@@ -177,7 +211,6 @@ const Dashboard = () => {
     { title: 'Inactive Alumni', value: alumniData?.stats.inactiveAlumni || 0, color: 'warning' },
     { title: 'Total Alumni', value: alumniData?.stats.totalAlumni || 0, color: 'info' },
   ];
-  
 
   // Custom cluster icon creation function
   const createClusterCustomIcon = (cluster: any) => {
@@ -202,8 +235,7 @@ const Dashboard = () => {
         ))}
         
         <Grid container spacing={3}>
-          {/* First grid item: 1/3 of the screen */}
-          <Grid item xs={12} md={4}>  {/* 1/3 of the screen */}
+          <Grid item xs={12} md={4}>
             <Card sx={{ height: 400 }}>
               <CardContent sx={{ height: '100%' }}>
                 <Typography variant="h6" gutterBottom>
@@ -238,8 +270,7 @@ const Dashboard = () => {
             </Card>
           </Grid>
 
-          {/* Second grid item: 2/3 of the screen */}
-          <Grid item xs={12} md={8}>  {/* 2/3 of the screen */}
+          <Grid item xs={12} md={8}>
             <Card sx={{ height: 800 }}>
               <CardContent sx={{ height: '100%' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -247,13 +278,13 @@ const Dashboard = () => {
                     Alumni Locations
                   </Typography>
                   <FormControl size="small" sx={{ minWidth: 120 }}>
-                    <InputLabel>Filter by college</InputLabel>
+                    <InputLabel>Filter by College</InputLabel>
                     <Select
                       value={collegeFilter}
-                      label="Filter by college"
-                      onChange={handlecollegeFilterChange}
+                      label="Filter by College"
+                      onChange={handleCollegeFilterChange}
                     >
-                      <MenuItem value="all">All College</MenuItem>
+                      <MenuItem value="all">All Colleges</MenuItem>
                       <MenuItem value="IBM">IBM</MenuItem>
                       <MenuItem value="ICS">ICS</MenuItem>
                       <MenuItem value="ITE">ITE</MenuItem>
@@ -277,11 +308,15 @@ const Dashboard = () => {
                       spiderfyOnMaxZoom={true}
                     >
                       {filteredLocations.map((location) => (
-                        <Marker key={location.id} position={location.position}>
+                        <Marker 
+                          key={location.id} 
+                          position={location.position}
+                          icon={collegeIcons[location.college]}
+                        >
                           <Popup>
                             <div>
                               <strong>{location.name}</strong>
-                              <div>college: {location.college}</div>
+                              <div>College: {location.college}</div>
                               <div>Status: {location.status}</div>
                             </div>
                           </Popup>
@@ -295,8 +330,6 @@ const Dashboard = () => {
             </Card>
           </Grid>
         </Grid>
-
-
       </Grid>
     </div>
   );
