@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { TextField, Button, Container, Typography, Box } from '@mui/material';
+import CookieOutLined from '@mui/icons-material/CookieOutlined';
+import Stack from '@mui/material/Stack';
+
 import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
@@ -17,6 +20,31 @@ const Login: React.FC = () => {
   return (
     <Container maxWidth="sm">
       <Box mt={10} p={4} boxShadow={3} borderRadius={2}>
+        <Stack 
+            direction="column" 
+            spacing={2} 
+            sx={{ 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              width: '100%', 
+            }}
+          >
+            {/*
+             <Avatar 
+              alt="Remy Sharp" 
+              src="/static/images/avatar/5.jpg" 
+              sx={{ 
+                width: 100, 
+                height: 100, 
+              }}
+              />
+            */}
+           
+            {/* Replace Avatar with Material Icon */}
+              <CookieOutLined sx={{ 
+                fontSize: 200, // Adjust the size of the icon
+              }} />
+          </Stack>
         <Typography variant="h5" gutterBottom>Login</Typography>
 
         {/* Hidden dummy fields to suppress browser autofill */}

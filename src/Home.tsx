@@ -1,25 +1,9 @@
 import * as React from 'react';
 import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
-import Box from '@mui/material/Box';
-import Drawer from '@mui/material/Drawer';
-import CssBaseline from '@mui/material/CssBaseline';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
-import Toolbar from '@mui/material/Toolbar';
-import List from '@mui/material/List';
-import Typography from '@mui/material/Typography';
-import Divider from '@mui/material/Divider';
-import IconButton from '@mui/material/IconButton';
-import MenuIcon from '@mui/icons-material/Menu';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import AccountCircle from '@mui/icons-material/AccountCircle';
-import Menu from '@mui/material/Menu';
-import MenuItem from '@mui/material/MenuItem';
+import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle } from '@mui/icons-material';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
@@ -59,7 +43,7 @@ const DrawerHeader = styled('div')(({ theme }) => ({
 
 export default function HomeLayout() {
   const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(true); // Set to true to open the drawer by default
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null); // State for the menu anchor
   const navigate = useNavigate();
 
@@ -104,7 +88,7 @@ export default function HomeLayout() {
           <IconButton color="inherit" onClick={handleDrawerOpen} edge="start" sx={{ mr: 2, ...(open && { display: 'none' }) }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap>Persistent Drawer</Typography>
+          <Typography variant="h6" noWrap>Dashboard</Typography>
 
           {/* Profile Icon Button on AppBar */}
           <IconButton color="inherit" onClick={handleMenuClick} sx={{ ml: 'auto' }}>
@@ -123,6 +107,7 @@ export default function HomeLayout() {
           </Menu>
         </Toolbar>
       </AppBar>
+
       <Drawer
         sx={{ width: drawerWidth, flexShrink: 0, '& .MuiDrawer-paper': { width: drawerWidth, boxSizing: 'border-box' } }}
         variant="persistent"
@@ -134,6 +119,25 @@ export default function HomeLayout() {
             {theme.direction === 'ltr' ? <ChevronLeftIcon /> : <ChevronRightIcon />}
           </IconButton>
         </DrawerHeader>
+        <Stack 
+            direction="column" 
+            spacing={2} 
+            sx={{ 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              width: '100%', 
+            }}
+          >
+            <Avatar 
+              alt="Remy Sharp" 
+              src="/static/images/avatar/5.jpg" 
+              sx={{ 
+                width: 100, 
+                height: 100, 
+              }} 
+            />
+            <h3>Hello User!</h3>
+          </Stack>
         <Divider />
         <List>
           {drawerItems.map(({ text, path, icon }) => (

@@ -1,0 +1,11 @@
+.custom-marker-cluster {
+    background-color: #1976d2;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.3);
+  }
