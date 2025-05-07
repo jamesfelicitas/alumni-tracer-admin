@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "homepage": "https://cliffamadeus.github.io/vite-material-ui",
+  "homepage": "https://cliffamadeus.github.io/beacon-test",
   "scripts": {
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist",

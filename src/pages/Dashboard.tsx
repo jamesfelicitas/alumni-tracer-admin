@@ -156,7 +156,7 @@ const Dashboard = () => {
   const [alumniData, setAlumniData] = useState<AlumniData | null>(null);
   const [collegeFilter, setCollegeFilter] = useState<string>('all');
   const mapCenter: [number, number] = [8.359724960609691, 124.86915063536755];
-  const initialZoom = 12;
+  const initialZoom = 5;
 
   useEffect(() => {
     // Simulate loading data from a JSON file
@@ -234,9 +234,9 @@ const Dashboard = () => {
           </Grid>
         ))}
         
-        <Grid container spacing={3}>
+        <Grid container spacing={3} style={{marginTop:'1rem'}}>
           <Grid item xs={12} md={4}>
-            <Card sx={{ height: 400 }}>
+            <Card sx={{ height: 500 }}>
               <CardContent sx={{ height: '100%' }}>
                 <Typography variant="h6" gutterBottom>
                   Alumni Activity Over Time
