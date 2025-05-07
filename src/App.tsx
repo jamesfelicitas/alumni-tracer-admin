@@ -4,9 +4,10 @@ import Home from './Home';
 
 export default function App() {
   return (
-    <Router basename="/vite-material-ui">
+    <Router basename="/beacon-test">
       <Routes>
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/home/*" element={<Home/>} />
       </Routes>
     </Router>
