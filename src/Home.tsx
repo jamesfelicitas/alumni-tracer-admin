@@ -3,7 +3,7 @@ import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
-import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle,  Analytics } from '@mui/icons-material';
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle,  Analytics, RadarOutlined } from '@mui/icons-material';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
@@ -78,7 +78,7 @@ export default function HomeLayout() {
 
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
-    { text: 'Data Charts', path: '/home/datacharts', icon: <Analytics/> },
+    { text: 'Radar Charts', path: '/home/datacharts', icon: <RadarOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
   ];
 
