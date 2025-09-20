@@ -155,7 +155,7 @@ const Dashboard = () => {
   const theme = useTheme();
   const [alumniData, setAlumniData] = useState<AlumniData | null>(null);
   const [collegeFilter, setCollegeFilter] = useState<string>('all');
-  const mapCenter: [number, number] = [8.359724960609691, 124.86915063536755];
+  const mapCenter: [number, number] = [12.988438,121.785126];
   const initialZoom = 5;
 
   useEffect(() => {
@@ -176,18 +176,18 @@ const Dashboard = () => {
           { month: 'May', newAlumni: 7, activeAlumni: 1280, inactiveAlumni: 312 }
         ],
         locations: [
-          { id: 1, name: 'John Doe', position: [8.3597, 124.8691], college: 'IBM', status: 'active' },
-          { id: 2, name: 'Jane Smith', position: [8.3600, 124.8700], college: 'ICS', status: 'active' },
-          { id: 3, name: 'Bob Johnson', position: [8.3580, 124.8680], college: 'ITE', status: 'inactive' },
-          { id: 4, name: 'Alice Brown', position: [8.3610, 124.8710], college: 'IBM', status: 'new' },
-          { id: 5, name: 'Charlie Wilson', position: [8.3620, 124.8720], college: 'ICS', status: 'active' },
-          { id: 6, name: 'Diana Miller', position: [8.3570, 124.8670], college: 'ITE', status: 'inactive' },
-          { id: 7, name: 'Evan Davis', position: [8.3630, 124.8730], college: 'IBM', status: 'active' },
+          { id: 1, name: 'John Doe', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
+          { id: 2, name: 'Jane Smith', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
+          { id: 3, name: 'Bob Johnson', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
+          { id: 4, name: 'Alice Brown', position: [8.3593168,124.8683004], college: 'IBM', status: 'new' },
+          { id: 5, name: 'Charlie Wilson', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
+          { id: 6, name: 'Diana Miller', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
+          { id: 7, name: 'Evan Davis', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
           { id: 8, name: 'Fiona Garcia', position: [8.3560, 124.8660], college: 'Other', status: 'new' },
-          { id: 9, name: 'George Harris', position: [8.3595, 124.8695], college: 'IBM', status: 'active' },
-          { id: 10, name: 'Hannah Lee', position: [8.3593, 124.8693], college: 'ICS', status: 'active' },
-          { id: 11, name: 'Ian Clark', position: [8.3592, 124.8692], college: 'ITE', status: 'inactive' },
-          { id: 12, name: 'Julia Adams', position: [8.3591, 124.8691], college: 'IBM', status: 'new' },
+          { id: 9, name: 'George Harris', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
+          { id: 10, name: 'Hannah Lee', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
+          { id: 11, name: 'Ian Clark', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
+          { id: 12, name: 'Julia Adams', position: [8.3593168,124.8683004], college: 'IBM', status: 'new' },
         ]
       };
       
