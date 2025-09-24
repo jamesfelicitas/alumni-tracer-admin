@@ -3,7 +3,8 @@ import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
-import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle,  Analytics, RadarOutlined } from '@mui/icons-material';
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle, RadarOutlined } from '@mui/icons-material';
+import { clearToken } from './auth';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
@@ -72,7 +73,9 @@ export default function HomeLayout() {
   };
 
   const handleLogout = () => {
-    navigate('/'); // Logout action (navigate to login page)
+    // Clear auth token and navigate to login
+    clearToken();
+    navigate('/login', { replace: true }); // Logout action: navigate to login page and replace history entry
     handleMenuClose();
   };
 

@@ -1,86 +1,135 @@
 import React, { useState } from 'react';
-import { TextField, Button, Container, Typography, Box } from '@mui/material';
-import CookieOutLined from '@mui/icons-material/CookieOutlined';
-import Stack from '@mui/material/Stack';
-
+import {
+  Avatar,
+  Box,
+  Button,
+  Checkbox,
+  Container,
+  FormControlLabel,
+  IconButton,
+  InputAdornment,
+  Link as MuiLink,
+  Stack,
+  TextField,
+  Typography,
+  Paper,
+} from '@mui/material';
+import MailOutlineIcon from '@mui/icons-material/MailOutline';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
+import { saveToken } from './auth';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log('navigating to /home');
-    // Handle login logic here
+    // TODO: Replace with real auth API call. For now save a mock token.
+    const mockToken = 'mock-admin-token-12345';
+    saveToken(mockToken, rememberMe);
     navigate('/home/dashboard');
   };
 
+  const toggleShowPassword = () => setShowPassword((s) => !s);
   return (
-    <Container maxWidth="sm">
-      <Box mt={10} p={4} boxShadow={3} borderRadius={2}>
-        <Stack 
-            direction="column" 
-            spacing={2} 
-            sx={{ 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              width: '100%', 
-            }}
-          >
-            {/*
-             <Avatar 
-              alt="Remy Sharp" 
-              src="/static/images/avatar/5.jpg" 
-              sx={{ 
-                width: 100, 
-                height: 100, 
+    <Container maxWidth="sm" sx={{ mt: 8 }}>
+      <Paper elevation={6} sx={{ p: 4, borderRadius: 3 }}>
+        <Stack spacing={3} alignItems="center">
+          <Avatar sx={{ width: 72, height: 72, bgcolor: 'transparent' }}>
+            <AdminPanelSettingsIcon sx={{ fontSize: 40 }} />
+          </Avatar>
+
+          <Box textAlign="center">
+            <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
+              Welcome Back
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Sign in to access the admin dashboard
+            </Typography>
+          </Box>
+
+          <Box component="form" onSubmit={handleLogin} sx={{ width: '100%' }} autoComplete="off">
+            {/* Hidden dummy fields to suppress browser autofill */}
+            <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
+            <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
+
+            <Typography variant="subtitle2" sx={{ mb: 1 }}>
+              Email Address
+            </Typography>
+            <TextField
+              placeholder="Enter your email"
+              type="email"
+              name="user_email"
+              autoComplete="off"
+              fullWidth
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <MailOutlineIcon color="action" />
+                  </InputAdornment>
+                ),
               }}
-              />
-            */}
-           
-            {/* Replace Avatar with Material Icon */}
-              <CookieOutLined sx={{ 
-                fontSize: 200, // Adjust the size of the icon
-              }} />
-          </Stack>
-        <Typography variant="h5" gutterBottom>Login</Typography>
+            />
 
-        {/* Hidden dummy fields to suppress browser autofill */}
-        <form onSubmit={handleLogin} autoComplete="off">
-          <input type="text" name="fakeusernameremembered" style={{ display: 'none' }} />
-          <input type="password" name="fakepasswordremembered" style={{ display: 'none' }} />
+            <Typography variant="subtitle2" sx={{ mt: 2, mb: 1 }}>
+              Password
+            </Typography>
+            <TextField
+              placeholder="Enter your password"
+              type={showPassword ? 'text' : 'password'}
+              name="user_pass"
+              autoComplete="new-password"
+              fullWidth
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <LockOutlinedIcon color="action" />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton onClick={toggleShowPassword} edge="end" aria-label="toggle password visibility">
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
 
-          <TextField
-            label="Email"
-            type="email"
-            name="user_email"
-            autoComplete="off"
-            fullWidth
-            margin="normal"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
+            <FormControlLabel
+              control={<Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} />}
+              label="Remember me"
+            />
 
-          <TextField
-            label="Password"
-            type="password"
-            name="user_pass"
-            autoComplete="new-password"
-            fullWidth
-            margin="normal"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+            <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 1.5, py: 1.5 }}>
+              Sign In
+            </Button>
 
-          <Button type="submit" variant="contained" fullWidth sx={{ mt: 2 }}>
-            Login
-          </Button>
-        </form>
-      </Box>
+            <Stack direction="column" alignItems="center" spacing={1} sx={{ mt: 2 }}>
+              <MuiLink component="button" variant="body2" onClick={() => { /* TODO: forgot password */ }}>
+                Forgot your password?
+              </MuiLink>
+
+              <Typography variant="caption" color="error" sx={{ mt: 1 }}>
+                For admin use only
+              </Typography>
+            </Stack>
+          </Box>
+        </Stack>
+      </Paper>
     </Container>
   );
 };
