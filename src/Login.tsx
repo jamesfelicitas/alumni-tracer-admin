@@ -21,6 +21,7 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
 import { saveToken } from './auth';
+import { supabase } from './supabaseClient';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -29,11 +30,38 @@ const Login: React.FC = () => {
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const [error, setError] = useState<string | null>(null);
+
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // TODO: Replace with real auth API call. For now save a mock token.
-    const mockToken = 'mock-admin-token-12345';
-    saveToken(mockToken, rememberMe);
+    setError(null);
+
+    // 1) Sign in with Supabase
+    const { data, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (signInError || !data.session || !data.user) {
+      setError('Invalid credentials');
+      return;
+    }
+
+    // 2) Check admin role in profiles table
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single();
+
+    if (profileError || !profile || profile.role !== 'admin') {
+      await supabase.auth.signOut();
+      setError('Account is not an admin');
+      return;
+    }
+
+    // 3) Persist token using your existing helper for route guards
+    saveToken(data.session.access_token, rememberMe);
     navigate('/home/dashboard');
   };
 
@@ -117,6 +145,12 @@ const Login: React.FC = () => {
             <Button type="submit" variant="contained" color="primary" fullWidth sx={{ mt: 1.5, py: 1.5 }}>
               Sign In
             </Button>
+
+            {error && (
+              <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                {error}
+              </Typography>
+            )}
 
             <Stack direction="column" alignItems="center" spacing={1} sx={{ mt: 2 }}>
               <MuiLink component="button" variant="body2" onClick={() => { /* TODO: forgot password */ }}>
