@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   Grid, 
   Card, 
@@ -10,7 +10,8 @@ import {
   InputLabel, 
   Select, 
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  LinearProgress
 } from '@mui/material';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -23,7 +24,7 @@ import L from 'leaflet';
 import GpsFixedIcon from '@mui/icons-material/GpsFixed';
 import MarkerClusterGroup from 'react-leaflet-markercluster';
 import './Dashboard.css';
-
+import { supabase } from '../supabaseClient';
 // Fix for default marker icons in React-Leaflet
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -155,55 +156,150 @@ const Dashboard = () => {
   const theme = useTheme();
   const [alumniData, setAlumniData] = useState<AlumniData | null>(null);
   const [collegeFilter, setCollegeFilter] = useState<string>('all');
+  const [loading, setLoading] = useState<boolean>(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const mapCenter: [number, number] = [12.988438,121.785126];
   const initialZoom = 5;
+  const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    // Simulate loading data from a JSON file
-    const fetchData = async () => {
-      const mockData: AlumniData = {
-        stats: {
-          newAlumni: 42,
-          activeAlumni: 1280,
-          inactiveAlumni: 312,
-          totalAlumni: 1634
-        },
-        activity: [
-          { month: 'Jan', newAlumni: 5, activeAlumni: 1200, inactiveAlumni: 300 },
-          { month: 'Feb', newAlumni: 8, activeAlumni: 1220, inactiveAlumni: 290 },
-          { month: 'Mar', newAlumni: 12, activeAlumni: 1250, inactiveAlumni: 280 },
-          { month: 'Apr', newAlumni: 10, activeAlumni: 1260, inactiveAlumni: 295 },
-          { month: 'May', newAlumni: 7, activeAlumni: 1280, inactiveAlumni: 312 }
-        ],
-        locations: [
-          { id: 1, name: 'John Doe', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
-          { id: 2, name: 'Jane Smith', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
-          { id: 3, name: 'Bob Johnson', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
-          { id: 4, name: 'Alice Brown', position: [8.3593168,124.8683004], college: 'IBM', status: 'new' },
-          { id: 5, name: 'Charlie Wilson', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
-          { id: 6, name: 'Diana Miller', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
-          { id: 7, name: 'Evan Davis', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
-          { id: 8, name: 'Fiona Garcia', position: [8.3560, 124.8660], college: 'Other', status: 'new' },
-          { id: 9, name: 'George Harris', position: [8.3593168,124.8683004], college: 'IBM', status: 'active' },
-          { id: 10, name: 'Hannah Lee', position: [8.359023701764206, 124.86902837571442], college: 'ICS', status: 'active' },
-          { id: 11, name: 'Ian Clark', position: [8.359997968749543, 124.86731582532843], college: 'ITE', status: 'inactive' },
-          { id: 12, name: 'Julia Adams', position: [8.3593168,124.8683004], college: 'IBM', status: 'new' },
-        ]
-      };
-      
-      setAlumniData(mockData);
+    const countProfiles = async (kind?: 'new' | 'active' | 'inactive') => {
+      // Use count:'exact' so Content-Range is parsed reliably
+      let q = supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'alumni');
+      if (collegeFilter !== 'all') q = q.eq('college', collegeFilter);
+
+      if (kind === 'new') {
+        // Treat as recent signups OR explicit status='new'
+        const since = new Date();
+        since.setDate(since.getDate() - 30);
+        q = q.or(`status.eq.new,created_at.gte.${since.toISOString()}`);
+      } else if (kind === 'active') {
+        // Treat null as active so legacy rows count
+        q = q.or('status.eq.active,status.is.null');
+      } else if (kind === 'inactive') {
+        q = q.eq('status', 'inactive');
+      }
+
+      const { count, error } = await q;
+      if (error) throw error;
+      return count ?? 0;
     };
 
-    fetchData();
-  }, []);
+    const computeProfileStats = async () => {
+      const [newCount, activeCount, inactiveCount, totalCount] = await Promise.all([
+        countProfiles('new'),
+        countProfiles('active'),
+        countProfiles('inactive'),
+        (async () => {
+          let tq = supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'alumni');
+          if (collegeFilter !== 'all') tq = tq.eq('college', collegeFilter);
+          const { count, error } = await tq;
+          if (error) throw error;
+          return count ?? 0;
+        })(),
+      ]);
+      return { newAlumni: newCount, activeAlumni: activeCount, inactiveAlumni: inactiveCount, totalAlumni: totalCount };
+    };
+
+    const loadViaProfiles = async () => {
+      // Cards from profiles (role='alumni'), map markers from alumni_locations
+      const stats = await computeProfileStats();
+
+      // Fetch locations (optionally filtered by college)
+      let lq = supabase
+        .from('alumni_locations')
+        .select('id,name,lat,lng,college,status')
+        .order('id', { ascending: false })
+        .limit(5000);
+      if (collegeFilter !== 'all') lq = lq.eq('college', collegeFilter);
+      const { data: locs, error: locErr } = await lq;
+      if (locErr) throw locErr;
+
+      const mappedLocations: AlumniData['locations'] = (locs || []).map((r: any) => ({
+        id: r.id,
+        name: r.name,
+        position: [r.lat, r.lng],
+        college: r.college,
+        status: r.status,
+      }));
+
+      setAlumniData({
+        stats,
+        activity: [],
+        locations: mappedLocations,
+      });
+    };
+
+    const loadDashboard = async () => {
+      setLoading(true);
+      setLoadError(null);
+      const { data, error } = await supabase.rpc('get_admin_dashboard', {
+        college_filter: collegeFilter === 'all' ? 'all' : collegeFilter,
+      });
+
+      if (!error && data) {
+        const rpcData = data as AlumniData;
+        const zeros =
+          (rpcData.stats?.newAlumni ?? 0) === 0 &&
+          (rpcData.stats?.activeAlumni ?? 0) === 0 &&
+          (rpcData.stats?.inactiveAlumni ?? 0) === 0 &&
+          (rpcData.stats?.totalAlumni ?? 0) === 0 &&
+          (rpcData.locations?.length ?? 0) === 0;
+        if (zeros) {
+          // RPC returned but looks empty; try profiles-based fallback
+          try {
+            await loadViaProfiles();
+          } catch (e) {
+            setAlumniData(rpcData);
+          }
+        } else {
+          // Always compute stats from profiles for accuracy; keep RPC activity/locations
+          try {
+            const stats = await computeProfileStats();
+            setAlumniData({ ...rpcData, stats });
+          } catch {
+            setAlumniData(rpcData);
+          }
+        }
+      } else {
+        // RPC not available or failed; use profiles-based fallback so cards still work
+        try {
+          await loadViaProfiles();
+        } catch (e: any) {
+          console.error('Failed to load dashboard:', error || e);
+          setLoadError((error?.message || e?.message || 'Failed to load dashboard'));
+        }
+      }
+      setLoading(false);
+    };
+
+    loadDashboard();
+
+    // Realtime: subscribe to profiles (for counts) and alumni_locations (for map)
+    const channel = supabase
+      .channel('dashboard-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        if (reloadTimer.current) clearTimeout(reloadTimer.current);
+        reloadTimer.current = setTimeout(loadDashboard, 400);
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_locations' }, () => {
+        if (reloadTimer.current) clearTimeout(reloadTimer.current);
+        reloadTimer.current = setTimeout(loadDashboard, 400);
+      })
+      .subscribe();
+
+    return () => {
+      if (reloadTimer.current) clearTimeout(reloadTimer.current);
+      supabase.removeChannel(channel);
+    };
+  }, [collegeFilter]);
 
   const handleCollegeFilterChange = (event: SelectChangeEvent) => {
     setCollegeFilter(event.target.value as string);
   };
 
-  const filteredLocations = alumniData?.locations.filter(location => 
-    collegeFilter === 'all' || location.college === collegeFilter
-  ) || [];
+  // locations are already filtered server-side by college_filter
+  const filteredLocations = alumniData?.locations || [];
 
   const stats: StatCardProps[] = [
     { title: 'New Alumni', value: alumniData?.stats.newAlumni || 0, color: 'primary' },
@@ -228,6 +324,16 @@ const Dashboard = () => {
       </Typography>
 
       <Grid container spacing={3}>
+        {loadError && (
+          <Grid item xs={12}>
+            <Typography color="error" variant="body2">{loadError}</Typography>
+          </Grid>
+        )}
+        {loading && (
+          <Grid item xs={12}>
+            <LinearProgress />
+          </Grid>
+        )}
         {stats.map((stat) => (
           <Grid item key={stat.title} xs={12} sm={6} md={3}>
             <StatCard title={stat.title} value={stat.value} color={stat.color} />

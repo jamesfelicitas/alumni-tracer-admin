@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   RadarChart,
   Radar,
@@ -7,7 +7,12 @@ import {
   PolarRadiusAxis,
   ResponsiveContainer,
   Legend,
-  Tooltip
+  Tooltip,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid
 } from 'recharts';
 import {
   Container,
@@ -20,6 +25,7 @@ import {
   Select,
   SelectChangeEvent
 } from '@mui/material';
+import { supabase } from '../supabaseClient';
 
 type RechartsRadarData = { subject: string; score: number };
 
@@ -93,14 +99,38 @@ const radarData: Record<string, {
   }
 };
 
+type ActivityPoint = { month: string; newAlumni: number; activeAlumni: number; inactiveAlumni: number };
+
 const DataCharts: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState('Overall');
+  const [activity, setActivity] = useState<ActivityPoint[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const handleChange = (event: SelectChangeEvent) => {
     setSelectedDept(event.target.value);
   };
 
   const { alumniChart, programChart } = radarData[selectedDept];
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      setLoadError(null);
+      const { data, error } = await supabase.rpc('get_admin_dashboard', { college_filter: 'all' });
+      if (!mounted) return;
+      if (error) {
+        setLoadError(error.message);
+        return;
+      }
+      if (data && (data as any).activity) {
+        setActivity((data as any).activity as ActivityPoint[]);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   return (
     <Container sx={{ py: 5 }}>
@@ -161,6 +191,31 @@ const DataCharts: React.FC = () => {
                 <Legend />
               </RadarChart>
             </ResponsiveContainer>
+          </Paper>
+        </Grid>
+
+        {/* Monthly Alumni Activity from Supabase */}
+        <Grid item xs={12}>
+          <Paper elevation={3} sx={{ p: 3 }}>
+            <Typography variant="h6" align="center" gutterBottom>
+              Monthly Alumni Activity (from Supabase)
+            </Typography>
+            {loadError ? (
+              <Typography color="error" align="center">{loadError}</Typography>
+            ) : (
+              <ResponsiveContainer width="100%" height={350}>
+                <LineChart data={activity}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Line type="monotone" dataKey="newAlumni" name="New" stroke="#1976d2" />
+                  <Line type="monotone" dataKey="activeAlumni" name="Active" stroke="#2e7d32" />
+                  <Line type="monotone" dataKey="inactiveAlumni" name="Inactive" stroke="#ed6c02" />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
           </Paper>
         </Grid>
       </Grid>
