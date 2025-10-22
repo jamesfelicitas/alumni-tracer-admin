@@ -20,12 +20,12 @@ type Profile = {
 type Row = Profile & { display_full_name: string };
 
 const columns: GridColDef[] = [
-  { field: 'id', headerName: 'ID', width: 240 },
+  // ID column removed from visible table
   { field: 'display_full_name', headerName: 'Full Name', width: 180 },
   { field: 'course', headerName: 'Course', width: 140 },
   {
     field: 'graduation_year',
-    headerName: 'Grad Year',
+    headerName: 'Year Graduated',
     width: 110,
     type: 'number',
     valueFormatter: (value: number | null | undefined) => (value == null ? '' : String(value)),
@@ -78,7 +78,7 @@ const DataTables = () => {
     const q = searchQuery.toLowerCase();
     return rows.filter((row) =>
       [
-        row.id,
+        // row.id removed from search keys
         row.full_name,
         row.first_name,
         row.last_name,
