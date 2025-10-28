@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
-import { Card, CardContent, Typography, TextField, Box, LinearProgress, Alert } from '@mui/material';
+import { Card, CardContent, Typography, TextField, LinearProgress, Alert, Button, Stack } from '@mui/material';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { supabase } from '../supabaseClient';
 type Profile = {
   id: string;
@@ -18,6 +19,24 @@ type Profile = {
 };
 
 type Row = Profile & { display_full_name: string };
+
+// CSV helpers
+function escapeCsvCell(v: any): string {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  const needsQuotes = /[",\n]/.test(s);
+  const escaped = s.replace(/"/g, '""');
+  return needsQuotes ? `"${escaped}"` : escaped;
+}
+
+function buildCsv<RowT>(rows: RowT[], cols: GridColDef[]): string {
+  const headers = cols.map((c) => c.headerName ?? c.field).join(',');
+  const lines = (rows as any[]).map((r) =>
+    cols.map((c) => escapeCsvCell(r[c.field as keyof typeof r])).join(',')
+  );
+  // Add UTF-8 BOM for Excel compatibility
+  return '\uFEFF' + [headers, ...lines].join('\n');
+}
 
 const columns: GridColDef[] = [
   // ID column removed from visible table
@@ -95,6 +114,22 @@ const DataTables = () => {
     );
   }, [rows, searchQuery]);
 
+  // Single-button export: export current filtered view
+  const handleExportCsv = () => {
+    const rowsToExport = filteredRows;
+    const csv = buildCsv(rowsToExport, columns);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const date = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `alumni-data-${date}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Card sx={{ width: '100%' }}>
       <CardContent>
@@ -102,7 +137,7 @@ const DataTables = () => {
           User Records
         </Typography>
 
-        <Box mb={2}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
           <TextField
             fullWidth
             variant="outlined"
@@ -111,7 +146,15 @@ const DataTables = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
-        </Box>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<FileDownloadIcon />}
+            onClick={handleExportCsv}
+          >
+            download alumni data (CSV)
+          </Button>
+        </Stack>
 
         <div style={{ height: 500, width: '100%' }}>
           {loading && <LinearProgress />}
