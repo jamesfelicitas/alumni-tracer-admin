@@ -3,12 +3,12 @@ import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
-import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle, RadarOutlined } from '@mui/icons-material';
+import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle } from '@mui/icons-material';
 import { clearToken } from './auth';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
-import DataCharts from './pages/DataCharts';
+
 
 const drawerWidth = 240;
 
@@ -81,7 +81,7 @@ export default function HomeLayout() {
 
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
-    { text: 'Radar Charts', path: '/home/datacharts', icon: <RadarOutlined/> },
+    // { text: 'Radar Charts', path: '/home/datacharts', icon: <RadarOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
   ];
 
@@ -172,7 +172,7 @@ export default function HomeLayout() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
-          <Route path="/datacharts" element={<DataCharts />} />
+          {/* <Route path="/datacharts" element={<DataCharts />} /> */}
           <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
       </Main>
