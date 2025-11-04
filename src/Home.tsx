@@ -6,8 +6,10 @@ import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButto
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle } from '@mui/icons-material';
 import { clearToken } from './auth';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
+import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
+import CreateUser from './pages/CreateUser';
 
 
 const drawerWidth = 240;
@@ -83,6 +85,7 @@ export default function HomeLayout() {
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
     // { text: 'Radar Charts', path: '/home/datacharts', icon: <RadarOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
+    { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
   ];
 
   return (
@@ -172,6 +175,7 @@ export default function HomeLayout() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
+          <Route path="/create-user" element={<CreateUser />} />
           {/* <Route path="/datacharts" element={<DataCharts />} /> */}
           <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
