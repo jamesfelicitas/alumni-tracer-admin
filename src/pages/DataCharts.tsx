@@ -116,14 +116,42 @@ const DataCharts: React.FC = () => {
     let mounted = true;
     const load = async () => {
       setLoadError(null);
-      const { data, error } = await supabase.rpc('get_admin_dashboard', { college_filter: 'all' });
-      if (!mounted) return;
-      if (error) {
-        setLoadError(error.message);
-        return;
-      }
-      if (data && (data as any).activity) {
-        setActivity((data as any).activity as ActivityPoint[]);
+      try {
+        // Aggregate monthly activity from profiles (last 12 months)
+        const since = new Date();
+        since.setMonth(since.getMonth() - 11);
+        const { data: profiles, error } = await supabase
+          .from('profiles')
+          .select('created_at,status')
+          .gte('created_at', since.toISOString());
+        if (!mounted) return;
+        if (error) {
+          setLoadError(error.message);
+          return;
+        }
+
+        const now = new Date();
+        const months: Record<string, ActivityPoint> = {};
+        // prepare 12 months bucket (oldest -> newest)
+        for (let i = 11; i >= 0; i--) {
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const key = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+          months[key] = { month: key, newAlumni: 0, activeAlumni: 0, inactiveAlumni: 0 };
+        }
+
+        (profiles || []).forEach((p: any) => {
+          const d = new Date(p.created_at);
+          const key = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+          if (!months[key]) return; // outside range
+          // count created in that month as "new" for that month
+          months[key].newAlumni += 1;
+          if (p.status === 'inactive') months[key].inactiveAlumni += 1;
+          else months[key].activeAlumni += 1;
+        });
+
+        setActivity(Object.values(months));
+      } catch (e: any) {
+        setLoadError(e?.message || String(e));
       }
     };
     load();

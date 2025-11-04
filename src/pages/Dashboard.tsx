@@ -202,26 +202,23 @@ const Dashboard = () => {
     };
 
     const loadViaProfiles = async () => {
-      // Cards from profiles (role='alumni'), map markers from alumni_locations
+      // Cards from profiles (role='alumni'), map markers also loaded from profiles
       const stats = await computeProfileStats();
 
-      // Fetch locations (optionally filtered by college)
+      // Fetch locations from profiles (optionally filtered by college)
+      // Assumption: `profiles` contains latitude/longitude columns named `lat` and `lng`,
+      // and a display name in `full_name` (or first_name/last_name).
       let lq = supabase
-        .from('alumni_locations')
-        .select('id,name,lat,lng,college,status')
+        .from('profiles')
+        .select('id, full_name, first_name, last_name, college, status, location')
         .order('id', { ascending: false })
         .limit(5000);
       if (collegeFilter !== 'all') lq = lq.eq('college', collegeFilter);
-      const { data: locs, error: locErr } = await lq;
+  const { error: locErr } = await lq;
       if (locErr) throw locErr;
 
-      const mappedLocations: AlumniData['locations'] = (locs || []).map((r: any) => ({
-        id: r.id,
-        name: r.name,
-        position: [r.lat, r.lng],
-        college: r.college,
-        status: r.status,
-      }));
+      // profiles table doesn't have lat/lng; skip markers until coordinates are available
+      const mappedLocations: AlumniData['locations'] = [];
 
       setAlumniData({
         stats,
@@ -231,58 +228,25 @@ const Dashboard = () => {
     };
 
     const loadDashboard = async () => {
+      // Skip RPC entirely (server-side function references deleted table).
+      // Always load dashboard data from profiles to avoid server errors.
       setLoading(true);
       setLoadError(null);
-      const { data, error } = await supabase.rpc('get_admin_dashboard', {
-        college_filter: collegeFilter === 'all' ? 'all' : collegeFilter,
-      });
-
-      if (!error && data) {
-        const rpcData = data as AlumniData;
-        const zeros =
-          (rpcData.stats?.newAlumni ?? 0) === 0 &&
-          (rpcData.stats?.activeAlumni ?? 0) === 0 &&
-          (rpcData.stats?.inactiveAlumni ?? 0) === 0 &&
-          (rpcData.stats?.totalAlumni ?? 0) === 0 &&
-          (rpcData.locations?.length ?? 0) === 0;
-        if (zeros) {
-          // RPC returned but looks empty; try profiles-based fallback
-          try {
-            await loadViaProfiles();
-          } catch (e) {
-            setAlumniData(rpcData);
-          }
-        } else {
-          // Always compute stats from profiles for accuracy; keep RPC activity/locations
-          try {
-            const stats = await computeProfileStats();
-            setAlumniData({ ...rpcData, stats });
-          } catch {
-            setAlumniData(rpcData);
-          }
-        }
-      } else {
-        // RPC not available or failed; use profiles-based fallback so cards still work
-        try {
-          await loadViaProfiles();
-        } catch (e: any) {
-          console.error('Failed to load dashboard:', error || e);
-          setLoadError((error?.message || e?.message || 'Failed to load dashboard'));
-        }
+      try {
+        await loadViaProfiles();
+      } catch (e: any) {
+        console.error('Failed to load dashboard via profiles:', e);
+        setLoadError(e?.message || String(e));
       }
       setLoading(false);
     };
 
     loadDashboard();
 
-    // Realtime: subscribe to profiles (for counts) and alumni_locations (for map)
+  // Realtime: subscribe to profiles (for counts and map updates)
     const channel = supabase
       .channel('dashboard-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
-        if (reloadTimer.current) clearTimeout(reloadTimer.current);
-        reloadTimer.current = setTimeout(loadDashboard, 400);
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'alumni_locations' }, () => {
         if (reloadTimer.current) clearTimeout(reloadTimer.current);
         reloadTimer.current = setTimeout(loadDashboard, 400);
       })
