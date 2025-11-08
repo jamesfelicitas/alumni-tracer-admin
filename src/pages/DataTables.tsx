@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { DataGrid, GridColDef, GridPaginationModel } from '@mui/x-data-grid';
 import { Card, CardContent, Typography, TextField, LinearProgress, Alert, Button, Stack } from '@mui/material';
+import AdminVerifyToggle from '../components/AdminVerifyToggle';
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { supabase } from '../supabaseClient';
 type Profile = {
@@ -8,6 +9,7 @@ type Profile = {
   full_name: string | null;
   first_name: string | null;
   last_name: string | null;
+  is_verified?: boolean | null;
   graduation_year: number | null;
   course: string | null;
   current_job: string | null;
@@ -53,6 +55,22 @@ const columns: GridColDef[] = [
   { field: 'company', headerName: 'Company', width: 160 },
   { field: 'location', headerName: 'Location', width: 160 },
   { field: 'phone_number', headerName: 'Phone', width: 140 },
+  {
+    field: 'is_verified',
+    headerName: 'Verified',
+    width: 140,
+    renderCell: (p) => (
+      <AdminVerifyToggle
+        userId={(p.row as any).id}
+        isVerified={Boolean((p.row as any).is_verified)}
+        onChange={(next) => {
+          p.api.updateRows([{ id: (p.row as any).id, is_verified: next }])
+        }}
+      />
+    ),
+    sortable: false,
+    filterable: false,
+  },
   { field: 'role', headerName: 'Role', width: 110 },
   { field: 'created_at', headerName: 'Created At', width: 180 },
 ];
@@ -74,7 +92,7 @@ const DataTables = () => {
       setLoading(true); setError(null);
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, full_name, first_name, last_name, graduation_year, course, current_job, company, location, phone_number, role, created_at')
+  .select('id, full_name, first_name, last_name, is_verified, graduation_year, course, current_job, company, location, phone_number, role, created_at')
         .order('created_at', { ascending: false });
       if (!mounted) return;
       if (error) setError(error.message);

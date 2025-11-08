@@ -22,6 +22,7 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
 import { saveToken } from './auth';
 import { supabase } from './supabaseClient';
+import { signInWithPasswordLog } from './activityLog';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -36,13 +37,10 @@ const Login: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    // 1) Sign in with Supabase
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError || !data.session || !data.user) {
+    // 1) Sign in with logging
+    const res = await signInWithPasswordLog(supabase, { email, password });
+    const data = res.data;
+    if (res.error || !data?.session || !data?.user) {
       setError('Invalid credentials');
       return;
     }
@@ -60,7 +58,7 @@ const Login: React.FC = () => {
       return;
     }
 
-    // 3) Persist token using your existing helper for route guards
+  // 3) Persist token using your existing helper for route guards
     saveToken(data.session.access_token, rememberMe);
     navigate('/home/dashboard');
   };

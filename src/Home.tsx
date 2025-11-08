@@ -5,11 +5,20 @@ import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
 import { Menu as MenuIcon, ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, AccountCircle } from '@mui/icons-material';
 import { clearToken } from './auth';
+import { supabase } from './supabaseClient';
+import { signOutWithLog } from './activityLog';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
 import CreateUser from './pages/CreateUser';
+import ActivityLogs from './pages/ActivityLogs';
+import HistoryIcon from '@mui/icons-material/History';
+import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import AlumniVerificationAdmin from './pages/AlumniVerificationAdmin';
+import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
+import Announcements from './pages/Announcements';
+import AnnouncementDetail from './pages/AnnouncementDetail';
 
 
 const drawerWidth = 240;
@@ -74,18 +83,22 @@ export default function HomeLayout() {
     handleMenuClose();
   };
 
-  const handleLogout = () => {
-    // Clear auth token and navigate to login
+  const handleLogout = async () => {
+    // Log and sign out from Supabase, then clear any local token and redirect
+    await signOutWithLog(supabase);
     clearToken();
-    navigate('/login', { replace: true }); // Logout action: navigate to login page and replace history entry
+    navigate('/login', { replace: true });
     handleMenuClose();
   };
 
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
-    // { text: 'Radar Charts', path: '/home/datacharts', icon: <RadarOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
     { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
+    { text: 'Activity Logs', path: '/home/activity-logs', icon: <HistoryIcon /> },
+  { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
+  { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
+  { text: 'Announcements Admin', path: '/home/admin/announcements', icon: <VerifiedUserIcon /> },
   ];
 
   return (
@@ -176,6 +189,11 @@ export default function HomeLayout() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
           <Route path="/create-user" element={<CreateUser />} />
+          <Route path="/activity-logs" element={<ActivityLogs />} />
+          <Route path="/alumni-verification" element={<AlumniVerificationAdmin />} />
+          <Route path="/announcements" element={<Announcements />} />
+          <Route path="/announcements/:id" element={<AnnouncementDetail />} />
+          <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
           {/* <Route path="/datacharts" element={<DataCharts />} /> */}
           <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
