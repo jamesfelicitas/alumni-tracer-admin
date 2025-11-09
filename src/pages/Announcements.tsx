@@ -18,6 +18,7 @@ export type Announcement = {
   end_at?: string | null
   location?: string | null
   organization?: string | null
+  post_url?: string | null
 }
 
 function monthDay(dateStr?: string | null) {
@@ -75,6 +76,7 @@ export default function Announcements() {
         end_at: r.end_at ?? r.ends_at ?? null,
         location: r.location ?? null,
         organization: r.organization ?? r.org ?? null,
+        post_url: r.post_url ?? null,
       }))
       setRows(mapped)
     } catch (e: any) {
@@ -137,6 +139,11 @@ export default function Announcements() {
                   <Typography variant="body2" color="text.primary" sx={{ whiteSpace: 'pre-wrap' }}>
                     {excerpt}
                   </Typography>
+                  {row.post_url && (
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.75 }}>
+                      <a href={row.post_url} target="_blank" rel="noopener noreferrer">View post ↗</a>
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
 

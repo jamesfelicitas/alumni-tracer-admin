@@ -11,6 +11,7 @@ type Ann = {
   banner_url?: string | null
   published_at?: string | null
   created_at: string
+  post_url?: string | null
 }
 
 function fmt(d?: string | null) {
@@ -31,7 +32,7 @@ export default function AnnouncementDetail() {
       try {
         const { data, error } = await supabase
           .from('announcements')
-          .select('id,title,body,image_url,banner_url,published_at,created_at')
+          .select('id,title,body,image_url,banner_url,published_at,created_at,post_url')
           .eq('id', id)
           .maybeSingle()
         if (error) throw error
@@ -44,6 +45,7 @@ export default function AnnouncementDetail() {
           banner_url: data.banner_url ?? null,
           published_at: data.published_at ?? data.created_at,
           created_at: data.created_at,
+          post_url: data.post_url ?? null,
         })
       } catch (e: any) {
         setError(e.message || 'Failed to load')
@@ -69,6 +71,11 @@ export default function AnnouncementDetail() {
           </Card>
         )}
         <Typography sx={{ whiteSpace: 'pre-wrap' }}>{row.body}</Typography>
+        {row.post_url && (
+          <Typography variant="body2" sx={{ mt: 1 }}>
+            <a href={row.post_url} target="_blank" rel="noopener noreferrer">View post ↗</a>
+          </Typography>
+        )}
       </Stack>
     </Box>
   )

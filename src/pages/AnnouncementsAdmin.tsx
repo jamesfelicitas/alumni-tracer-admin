@@ -22,6 +22,7 @@ export type Ann = {
   created_at: string
   updated_at: string
   image_url?: string | null
+  post_url?: string | null
 }
 
 function fmt(d?: string | null) {
@@ -36,18 +37,18 @@ export default function AnnouncementsAdmin() {
   const [search, setSearch] = React.useState('')
   const [dlgOpen, setDlgOpen] = React.useState(false)
   const [editing, setEditing] = React.useState<Ann | null>(null)
-  const [form, setForm] = React.useState({ title: '', body: '', audience: 'all', published: false, image_url: '' })
+  const [form, setForm] = React.useState({ title: '', body: '', audience: 'all', published: false, image_url: '', post_url: '' })
   const [uploading, setUploading] = React.useState(false)
   const fileInputRef = React.useRef<HTMLInputElement | null>(null)
 
   const openCreate = () => {
     setEditing(null)
-    setForm({ title: '', body: '', audience: 'all', published: false, image_url: '' })
+    setForm({ title: '', body: '', audience: 'all', published: false, image_url: '', post_url: '' })
     setDlgOpen(true)
   }
   const openEdit = (row: Ann) => {
     setEditing(row)
-    setForm({ title: row.title, body: row.body, audience: row.audience, published: row.published, image_url: row.image_url || '' })
+    setForm({ title: row.title, body: row.body, audience: row.audience, published: row.published, image_url: row.image_url || '', post_url: row.post_url || '' })
     setDlgOpen(true)
   }
 
@@ -56,7 +57,7 @@ export default function AnnouncementsAdmin() {
     try {
       const { data, error } = await supabase
         .from('announcements')
-        .select('id,title,body,audience,published,published_at,created_at,updated_at,image_url')
+        .select('id,title,body,audience,published,published_at,created_at,updated_at,image_url,post_url')
         .order('published_at', { ascending: false, nullsFirst: false })
         .order('created_at', { ascending: false })
         .limit(500)
@@ -98,6 +99,12 @@ export default function AnnouncementsAdmin() {
   const save = async () => {
     setLoading(true); setError(null)
     try {
+      const maybeUrl = form.post_url?.trim()
+      if (maybeUrl && !/^https?:\/\//i.test(maybeUrl)) {
+        setError('Please enter a valid URL starting with http:// or https://')
+        setLoading(false)
+        return
+      }
       const uid = (await supabase.auth.getUser()).data.user?.id || null
       const payload: any = {
         title: form.title.trim(),
@@ -107,6 +114,7 @@ export default function AnnouncementsAdmin() {
         published_at: form.published ? new Date().toISOString() : null,
         created_by: uid,
         image_url: form.image_url || null,
+        post_url: form.post_url?.trim() ? form.post_url.trim() : null,
       }
       if (editing) {
         const next = { ...payload }
@@ -182,6 +190,11 @@ export default function AnnouncementsAdmin() {
                   <TableCell>
                     <Typography fontWeight={600}>{r.title}</Typography>
                     <Typography variant="caption" color="text.secondary">{r.body.slice(0, 120)}{r.body.length > 120 ? '…' : ''}</Typography>
+                    {r.post_url && (
+                      <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
+                        <a href={r.post_url} target="_blank" rel="noopener noreferrer">View post ↗</a>
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell>{r.audience}</TableCell>
                   <TableCell>
@@ -218,6 +231,14 @@ export default function AnnouncementsAdmin() {
               <TextField label="Title" value={form.title} onChange={e => setForm(s => ({ ...s, title: e.target.value }))} fullWidth />
               <TextField label="Body" value={form.body} onChange={e => setForm(s => ({ ...s, body: e.target.value }))} fullWidth multiline minRows={4} />
               <TextField label="Audience" value={form.audience} onChange={e => setForm(s => ({ ...s, audience: e.target.value }))} fullWidth />
+              <TextField
+                label="External Post URL (optional)"
+                value={form.post_url}
+                onChange={e => setForm(s => ({ ...s, post_url: e.target.value }))}
+                fullWidth
+                placeholder="https://example.com/post/123"
+                type="url"
+              />
 
               <Stack direction="row" alignItems="center" spacing={1}>
                 <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={onFileChange} />
