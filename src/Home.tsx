@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
 import CreateUser from './pages/CreateUser';
 import ActivityLogs from './pages/ActivityLogs';
+import UserProfileTable from './pages/UserProfileTable';
 import HistoryIcon from '@mui/icons-material/History';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AlumniVerificationAdmin from './pages/AlumniVerificationAdmin';
@@ -94,11 +95,12 @@ export default function HomeLayout() {
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
+    { text: 'User Profiles', path: '/home/user-profile-table', icon: <TableChart /> },
     { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
     { text: 'Activity Logs', path: '/home/activity-logs', icon: <HistoryIcon /> },
-  { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
-  { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
-  { text: 'Announcements Admin', path: '/home/admin/announcements', icon: <VerifiedUserIcon /> },
+    { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
+    { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
+    { text: 'Announcements Admin', path: '/home/admin/announcements', icon: <VerifiedUserIcon /> },
   ];
 
   return (
@@ -189,6 +191,7 @@ export default function HomeLayout() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
           <Route path="/create-user" element={<CreateUser />} />
+          <Route path="/user-profile-table" element={<UserProfileTable />} />
           <Route path="/activity-logs" element={<ActivityLogs />} />
           <Route path="/alumni-verification" element={<AlumniVerificationAdmin />} />
           <Route path="/announcements" element={<Announcements />} />
