@@ -17,6 +17,7 @@ import UserProfileTable from './pages/UserProfileTable';
 import HistoryIcon from '@mui/icons-material/History';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
 import AlumniVerificationAdmin from './pages/AlumniVerificationAdmin';
+import DeletionRequestsAdmin from './pages/DeletionRequestsAdmin';
 import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
 import Announcements from './pages/Announcements';
 import AnnouncementDetail from './pages/AnnouncementDetail';
@@ -101,6 +102,7 @@ export default function HomeLayout() {
     { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
     { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
     { text: 'Announcements Admin', path: '/home/admin/announcements', icon: <VerifiedUserIcon /> },
+    { text: 'Deletion Requests', path: '/home/deletion-requests', icon: <HistoryIcon /> },
   ];
 
   return (
@@ -197,6 +199,7 @@ export default function HomeLayout() {
           <Route path="/announcements" element={<Announcements />} />
           <Route path="/announcements/:id" element={<AnnouncementDetail />} />
           <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
+          <Route path="/deletion-requests" element={<DeletionRequestsAdmin />} />
           {/* <Route path="/datacharts" element={<DataCharts />} /> */}
           <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
