@@ -8,6 +8,7 @@ import { clearToken } from './auth';
 import { supabase } from './supabaseClient';
 import { signOutWithLog } from './activityLog';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
+import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
@@ -97,7 +98,7 @@ export default function HomeLayout() {
   const drawerItems = [
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
-    { text: 'User Profiles', path: '/home/user-profile-table', icon: <TableChart /> },
+  { text: 'User Profiles', path: '/home/user-profile-table', icon: <PeopleAltIcon /> },
     { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
     { text: 'Activity Logs', path: '/home/activity-logs', icon: <HistoryIcon /> },
     { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
