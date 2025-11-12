@@ -276,15 +276,14 @@ const Dashboard = () => {
 
       // Total and New alumni (within last 30 days or status 'new')
       const totalAlumni = (rowsData || []).length;
-      const since30 = new Date(); since30.setDate(since30.getDate() - 30);
-      const newAlumni = (rowsData || []).reduce((acc: number, r: any) => {
-        try {
-          if (String(r.status).toLowerCase() === 'new') return acc + 1;
-          const created = r.created_at ? new Date(r.created_at) : null;
-          if (created && created >= since30) return acc + 1;
-        } catch {}
-        return acc;
-      }, 0);
+      // Daily new alumni (registrations today)
+      const todayISO = new Date().toISOString().slice(0,10); // UTC date portion
+      let newAlumni = 0;
+      (rowsData || []).forEach((r: any) => {
+        if (!r.created_at) return;
+        const dStr = String(r.created_at).slice(0,10);
+        if (dStr === todayISO) newAlumni += 1;
+      });
 
       // If still zero due to missing join/role mismatches, try counting straight from user_profile_questions table
       if (employed === 0 && unemployed === 0) {
@@ -427,7 +426,7 @@ const Dashboard = () => {
   const filteredLocations = alumniData?.locations || [];
 
   const stats: StatCardProps[] = [
-    { title: 'New Alumni', value: alumniData?.stats.newAlumni ?? 0, color: 'primary' },
+    { title: 'New Alumni Today', value: alumniData?.stats.newAlumni ?? 0, color: 'primary' },
     { title: 'Employed', value: alumniData?.stats.employed ?? 0, color: 'success' },
     { title: 'Unemployed', value: alumniData?.stats.unemployed ?? 0, color: 'warning' },
     { title: 'Total Alumni', value: alumniData?.stats.totalAlumni ?? 0, color: 'info' },
