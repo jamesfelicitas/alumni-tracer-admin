@@ -72,16 +72,15 @@ const collegeIcons: Record<string, L.Icon> = {
 // Types
 interface AlumniData {
   stats: {
+    employed: number;
+    unemployed: number;
     newAlumni: number;
-    activeAlumni: number;
-    inactiveAlumni: number;
     totalAlumni: number;
   };
+  // Daily profile update activity for the past ~30 days
   activity: Array<{
-    month: string;
-    newAlumni: number;
-    activeAlumni: number;
-    inactiveAlumni: number;
+    date: string; // YYYY-MM-DD
+    updates: number;
   }>;
   locations: Array<{
     id: string;
@@ -163,47 +162,37 @@ const Dashboard = () => {
   const reloadTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    const countProfiles = async (kind?: 'new' | 'active' | 'inactive') => {
-      // Use count:'exact' so Content-Range is parsed reliably
-      let q = supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'alumni');
-      if (collegeFilter !== 'all') q = q.eq('college', collegeFilter);
-
-      if (kind === 'new') {
-        // Treat as recent signups OR explicit status='new'
-        const since = new Date();
-        since.setDate(since.getDate() - 30);
-        q = q.or(`status.eq.new,created_at.gte.${since.toISOString()}`);
-      } else if (kind === 'active') {
-        // Treat null as active so legacy rows count
-        q = q.or('status.eq.active,status.is.null');
-      } else if (kind === 'inactive') {
-        q = q.eq('status', 'inactive');
-      }
-
-      const { count, error } = await q;
-      if (error) throw error;
-      return count ?? 0;
-    };
-
-    const computeProfileStats = async () => {
-      const [newCount, activeCount, inactiveCount, totalCount] = await Promise.all([
-        countProfiles('new'),
-        countProfiles('active'),
-        countProfiles('inactive'),
-        (async () => {
-          let tq = supabase.from('profiles').select('id', { count: 'exact' }).eq('role', 'alumni');
-          if (collegeFilter !== 'all') tq = tq.eq('college', collegeFilter);
-          const { count, error } = await tq;
-          if (error) throw error;
-          return count ?? 0;
-        })(),
-      ]);
-      return { newAlumni: newCount, activeAlumni: activeCount, inactiveAlumni: inactiveCount, totalAlumni: totalCount };
-    };
 
     const loadViaProfiles = async () => {
-      // Cards from profiles (role='alumni'), map markers also loaded from profiles
-      const stats = await computeProfileStats();
+      // Load alumni profiles then compute stats locally (robust to varying column names)
+
+      // Build activity series from activity_logs (profile_update daily counts, last 30 days)
+      const since = new Date();
+      since.setDate(since.getDate() - 30);
+      const { data: acts, error: actErr } = await supabase
+        .from('activity_logs')
+        .select('id, created_at, action')
+        .eq('action', 'profile_update')
+        .gte('created_at', since.toISOString())
+        .order('created_at', { ascending: true })
+        .limit(5000);
+      if (actErr) {
+        // non-fatal; just show empty series
+        console.warn('activity series load failed:', actErr);
+      }
+      const byDay = new Map<string, number>();
+      (acts || []).forEach((r: any) => {
+        const day = new Date(r.created_at).toISOString().slice(0,10);
+        byDay.set(day, (byDay.get(day) || 0) + 1);
+      });
+      // Ensure chronological array; optionally include days with zero
+      const activity: AlumniData['activity'] = [];
+      for (let i = 0; i <= 30; i++) {
+        const d = new Date(since.getTime());
+        d.setDate(since.getDate() + i);
+        const day = d.toISOString().slice(0,10);
+        activity.push({ date: day, updates: byDay.get(day) || 0 });
+      }
 
       // Fetch profiles with broad selection to support varied schemas
       let lq = supabase
@@ -215,6 +204,107 @@ const Dashboard = () => {
       if (collegeFilter !== 'all') lq = lq.eq('college', collegeFilter);
       const { data: rows, error: locErr } = await lq;
       if (locErr) throw locErr;
+      let rowsData: any[] = rows || [];
+      // Fallback: if role filter returned 0, try without role constraint (older rows may miss role)
+      if (rowsData.length === 0) {
+        try {
+          const { data: allProf, error: allErr } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('id', { ascending: false })
+            .limit(5000);
+          if (!allErr && allProf) rowsData = allProf as any[];
+        } catch {}
+      }
+
+      // Fetch employment_status from user_profile_questions (if available)
+      const profileIds: string[] = (rowsData || []).map((r: any) => r.id).filter(Boolean);
+      const statusMap = new Map<string, string>();
+      if (profileIds.length > 0) {
+        try {
+          const { data: esRows, error: esErr } = await supabase
+            .from('user_profile_questions')
+            .select('user_id, employment_status')
+            .in('user_id', profileIds);
+          if (!esErr && esRows) {
+            (esRows as any[]).forEach((r) => {
+              if (r.user_id && r.employment_status) {
+                statusMap.set(String(r.user_id), String(r.employment_status));
+              }
+            });
+          }
+        } catch (e) {
+          console.warn('Employment status fetch error:', e);
+        }
+      }
+
+      // Derive employment counts
+  let employed = 0; let unemployed = 0;
+      const isYes = (v: any) => v === true || v === 1 || v === '1' || String(v).toLowerCase() === 'true' || String(v).toLowerCase() === 'yes';
+      const isNo = (v: any) => v === false || v === 0 || v === '0' || String(v).toLowerCase() === 'false' || String(v).toLowerCase() === 'no';
+
+      const getEmploymentStatus = (r: any): 'employed' | 'unemployed' | null => {
+        // Prefer explicit user_profile_questions.employment_status if present
+        const mapVal = statusMap.get(String(r.id));
+        if (mapVal) {
+          const s = mapVal.toLowerCase().trim();
+          if (/^(self[-\s]?employed|employed)$/.test(s)) return 'employed';
+          if (/(^|\b)(freelance|entrepreneur|business owner|working|full[-\s]?time|part[-\s]?time)(\b|$)/.test(s) && !/unemployed|not\s*employed|jobless|none/.test(s)) return 'employed';
+          if (/unemployed|not\s*employed|jobless|none/.test(s)) return 'unemployed';
+        }
+        // boolean-like flags
+        if (r.is_employed !== undefined) return isYes(r.is_employed) ? 'employed' : isNo(r.is_employed) ? 'unemployed' : null;
+        if (r.employed !== undefined) return isYes(r.employed) ? 'employed' : isNo(r.employed) ? 'unemployed' : null;
+
+        // string status fields
+        const keys = ['employment_status','employmentStatus','employment','job_status','work_status','status_of_employment'];
+        for (const k of keys) {
+          if (r[k] != null) {
+            const s = String(r[k]).toLowerCase();
+            if (/(^|\b)self[-\s]?employed(\b|$)/.test(s)) return 'employed';
+            if (/employed/.test(s) && !/unemployed|not\s*employed|jobless|none/.test(s)) return 'employed';
+            if (/unemployed|not\s*employed|jobless|none/.test(s)) return 'unemployed';
+          }
+        }
+        return null;
+      };
+
+      (rowsData || []).forEach((r: any) => {
+        const st = getEmploymentStatus(r);
+        if (st === 'employed') employed += 1; else if (st === 'unemployed') unemployed += 1;
+      });
+
+      // Total and New alumni (within last 30 days or status 'new')
+      const totalAlumni = (rowsData || []).length;
+      const since30 = new Date(); since30.setDate(since30.getDate() - 30);
+      const newAlumni = (rowsData || []).reduce((acc: number, r: any) => {
+        try {
+          if (String(r.status).toLowerCase() === 'new') return acc + 1;
+          const created = r.created_at ? new Date(r.created_at) : null;
+          if (created && created >= since30) return acc + 1;
+        } catch {}
+        return acc;
+      }, 0);
+
+      // If still zero due to missing join/role mismatches, try counting straight from user_profile_questions table
+      if (employed === 0 && unemployed === 0) {
+        try {
+          const { data: aggRows } = await supabase
+            .from('user_profile_questions')
+            .select('employment_status');
+          let e = 0, u = 0;
+          (aggRows || []).forEach((r: any) => {
+            const s = String(r.employment_status || '').toLowerCase();
+            if (!s) return;
+            if (/(^|\b)self[-\s]?employed(\b|$)/.test(s)) e += 1;
+            else if (/unemployed|not\s*employed|jobless|none/.test(s)) u += 1;
+            else if (/employed/.test(s)) e += 1;
+          });
+          employed = e; unemployed = u;
+        } catch {}
+      }
+
+      const stats = { employed, unemployed, newAlumni, totalAlumni };
 
       // Helper: pick display name
       const getName = (r: any) => r.full_name || [r.first_name, r.last_name].filter(Boolean).join(' ') || '—';
@@ -230,9 +320,9 @@ const Dashboard = () => {
       const cache: Record<string, { lat: number; lon: number }> = cacheRaw ? JSON.parse(cacheRaw) : {};
 
       // Build initial markers from existing lat/lng or cache (instant display)
-      const initialMarkers: AlumniData['locations'] = [];
+  const initialMarkers: AlumniData['locations'] = [];
       const toGeocode: Array<{ key: string; row: any }> = [];
-      (rows || []).forEach((r: any) => {
+  (rowsData || []).forEach((r: any) => {
         const college = ['IBM','ICS','ITE'].includes((r.college || '').toUpperCase()) ? (r.college as string) : 'Other';
         const status = (r.status as any) || 'active';
         const name = getName(r);
@@ -254,7 +344,7 @@ const Dashboard = () => {
         }
       });
 
-      setAlumniData({ stats, activity: [], locations: initialMarkers });
+  setAlumniData({ stats, activity, locations: initialMarkers });
 
       // Geocode remaining entries in the background, then update cache and markers
       const geocodeOne = async (q: string) => {
@@ -284,7 +374,7 @@ const Dashboard = () => {
       }
 
       if (newlyAdded.length > 0) {
-        setAlumniData(prev => prev ? { ...prev, locations: [...prev.locations, ...newlyAdded] } : { stats, activity: [], locations: newlyAdded });
+        setAlumniData(prev => prev ? { ...prev, locations: [...prev.locations, ...newlyAdded] } : { stats, activity, locations: newlyAdded });
       }
     };
 
@@ -313,9 +403,19 @@ const Dashboard = () => {
       })
       .subscribe();
 
+    // Also listen to activity_logs to refresh the chart in near real-time
+    const actChannel = supabase
+      .channel('dashboard-activity-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'activity_logs' }, () => {
+        if (reloadTimer.current) clearTimeout(reloadTimer.current);
+        reloadTimer.current = setTimeout(loadDashboard, 400);
+      })
+      .subscribe();
+
     return () => {
       if (reloadTimer.current) clearTimeout(reloadTimer.current);
       supabase.removeChannel(channel);
+      supabase.removeChannel(actChannel);
     };
   }, [collegeFilter]);
 
@@ -327,10 +427,10 @@ const Dashboard = () => {
   const filteredLocations = alumniData?.locations || [];
 
   const stats: StatCardProps[] = [
-    { title: 'New Alumni', value: alumniData?.stats.newAlumni || 0, color: 'primary' },
-    { title: 'Active Alumni', value: alumniData?.stats.activeAlumni || 0, color: 'success' },
-    { title: 'Inactive Alumni', value: alumniData?.stats.inactiveAlumni || 0, color: 'warning' },
-    { title: 'Total Alumni', value: alumniData?.stats.totalAlumni || 0, color: 'info' },
+    { title: 'New Alumni', value: alumniData?.stats.newAlumni ?? 0, color: 'primary' },
+    { title: 'Employed', value: alumniData?.stats.employed ?? 0, color: 'success' },
+    { title: 'Unemployed', value: alumniData?.stats.unemployed ?? 0, color: 'warning' },
+    { title: 'Total Alumni', value: alumniData?.stats.totalAlumni ?? 0, color: 'info' },
   ];
 
   // Custom cluster icon creation function
@@ -375,25 +475,18 @@ const Dashboard = () => {
                 <ResponsiveContainer width="100%" height="80%">
                   <LineChart data={alumniData?.activity || []}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
+                    <XAxis dataKey="date" />
                     <YAxis />
                     <Tooltip />
+                    {/* Single series: daily profile updates */}
                     <Legend />
-                    <Line 
-                      type="monotone" 
-                      dataKey="newAlumni" 
-                      stroke={theme.palette.primary.main} 
-                      activeDot={{ r: 8 }} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="activeAlumni" 
-                      stroke={theme.palette.success.main} 
-                    />
-                    <Line 
-                      type="monotone" 
-                      dataKey="inactiveAlumni" 
-                      stroke={theme.palette.warning.main} 
+                    <Line
+                      type="monotone"
+                      name="Profile Updates"
+                      dataKey="updates"
+                      stroke={theme.palette.primary.main}
+                      dot={false}
+                      activeDot={{ r: 6 }}
                     />
                   </LineChart>
                 </ResponsiveContainer>
