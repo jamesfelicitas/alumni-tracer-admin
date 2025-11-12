@@ -1,5 +1,6 @@
 import React from 'react'
 import { Box, Button, Stack, Typography, FormControl, InputLabel, Select, MenuItem, TextField, InputAdornment, LinearProgress, Chip } from '@mui/material'
+import DownloadIcon from '@mui/icons-material/Download'
 import { useTheme } from '@mui/material/styles'
 import SearchIcon from '@mui/icons-material/Search'
 import { DataGrid, GridColDef } from '@mui/x-data-grid'
@@ -216,6 +217,54 @@ export default function ActivityLogs() {
     })
   }, [rows, search])
 
+  // CSV export (uses currently filtered rows)
+  const handleExportCSV = React.useCallback(() => {
+    if (!filteredRows.length) return;
+    const headers = ['created_at','action','actor_name','target_name','details'];
+    const escape = (v: any) => {
+      if (v == null) return '';
+      if (typeof v === 'object') {
+        // attempt to pick a meaningful field; skip generic object representation
+        const hint = v.message || v.note || v.info || v.reason || '';
+        v = hint;
+      } else if (typeof v === 'string') {
+        // remove literal [object Object]
+        if (v.trim() === '[object Object]') v = '';
+        // if JSON string, parse and extract message-like field
+        try {
+          if (/^[{\[]/.test(v.trim())) {
+            const obj = JSON.parse(v);
+            const hint = obj?.message || obj?.note || obj?.info || obj?.reason;
+            if (hint) v = String(hint);
+          }
+        } catch { /* ignore parse errors */ }
+      }
+      const s = String(v).replace(/"/g,'""');
+      return /[",\n]/.test(s) ? `"${s}"` : s;
+    };
+    const lines = [headers.join(',')];
+    for (const r of filteredRows) {
+      lines.push([
+        escape(r.created_at),
+        escape(r.action),
+        escape(r.actor_name),
+        escape(r.target_name),
+        escape(r.details)
+      ].join(','));
+    }
+    const csv = lines.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const dateStr = new Date().toISOString().slice(0,10);
+    a.href = url;
+    a.download = `activity_logs_${dateStr}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [filteredRows]);
+
   const clearFilters = () => {
     setActionFilter('all')
     setStartDate('')
@@ -229,6 +278,9 @@ export default function ActivityLogs() {
         <Typography variant="h5" fontWeight={700} color="primary.main">Activity Logs</Typography>
         <Button onClick={load} startIcon={<RefreshIcon/>} disabled={loading} variant="contained" color="primary" size="small">
           Refresh
+        </Button>
+        <Button onClick={handleExportCSV} startIcon={<DownloadIcon/>} disabled={!filteredRows.length} variant="outlined" color="primary" size="small">
+          Export CSV
         </Button>
         <Box flex={1} />
         <FormControl size="small" sx={{ minWidth: 160 }}>
