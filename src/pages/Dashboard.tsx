@@ -84,7 +84,7 @@ interface AlumniData {
     inactiveAlumni: number;
   }>;
   locations: Array<{
-    id: number;
+    id: string;
     name: string;
     position: [number, number];
     college: 'IBM' | 'ICS' | 'ITE' | 'Other';
@@ -205,26 +205,87 @@ const Dashboard = () => {
       // Cards from profiles (role='alumni'), map markers also loaded from profiles
       const stats = await computeProfileStats();
 
-      // Fetch locations from profiles (optionally filtered by college)
-      // Assumption: `profiles` contains latitude/longitude columns named `lat` and `lng`,
-      // and a display name in `full_name` (or first_name/last_name).
+      // Fetch profiles with broad selection to support varied schemas
       let lq = supabase
         .from('profiles')
-        .select('id, full_name, first_name, last_name, college, status, location')
+        .select('*')
+        .eq('role', 'alumni')
         .order('id', { ascending: false })
         .limit(5000);
       if (collegeFilter !== 'all') lq = lq.eq('college', collegeFilter);
-  const { error: locErr } = await lq;
+      const { data: rows, error: locErr } = await lq;
       if (locErr) throw locErr;
 
-      // profiles table doesn't have lat/lng; skip markers until coordinates are available
-      const mappedLocations: AlumniData['locations'] = [];
+      // Helper: pick display name
+      const getName = (r: any) => r.full_name || [r.first_name, r.last_name].filter(Boolean).join(' ') || '—';
+      // Helper: determine best text location to geocode
+      const getTextKey = (r: any) => {
+        const candidates = [r.location, r.address, r.city, r.municipality, r.province, r.region];
+        const v = candidates.find((x) => x && String(x).trim() && !/^n\/?a$/i.test(String(x)) && !/^(n\/a|na|none|null|unknown)$/i.test(String(x)));
+        return v ? String(v).trim() : '';
+      };
 
-      setAlumniData({
-        stats,
-        activity: [],
-        locations: mappedLocations,
+      const cacheKey = 'alumni-geocode-cache-v1';
+      const cacheRaw = localStorage.getItem(cacheKey);
+      const cache: Record<string, { lat: number; lon: number }> = cacheRaw ? JSON.parse(cacheRaw) : {};
+
+      // Build initial markers from existing lat/lng or cache (instant display)
+      const initialMarkers: AlumniData['locations'] = [];
+      const toGeocode: Array<{ key: string; row: any }> = [];
+      (rows || []).forEach((r: any) => {
+        const college = ['IBM','ICS','ITE'].includes((r.college || '').toUpperCase()) ? (r.college as string) : 'Other';
+        const status = (r.status as any) || 'active';
+        const name = getName(r);
+
+        const lat = r.lat ?? r.latitude ?? null;
+        const lng = r.lng ?? r.longitude ?? null;
+        if (typeof lat === 'number' && typeof lng === 'number') {
+          initialMarkers.push({ id: String(r.id), name, position: [lat, lng], college: college as any, status });
+          return;
+        }
+
+        const key = getTextKey(r);
+        if (!key) return;
+        const k = key.toLowerCase();
+        if (cache[k]) {
+          initialMarkers.push({ id: String(r.id), name, position: [cache[k].lat, cache[k].lon], college: college as any, status });
+        } else {
+          toGeocode.push({ key, row: r });
+        }
       });
+
+      setAlumniData({ stats, activity: [], locations: initialMarkers });
+
+      // Geocode remaining entries in the background, then update cache and markers
+      const geocodeOne = async (q: string) => {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&limit=3&countrycodes=ph&q=${encodeURIComponent(q)}`;
+        const resp = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+        const j = await resp.json();
+        if (Array.isArray(j) && j[0]) return { lat: Number(j[0].lat), lon: Number(j[0].lon) };
+        return null;
+      };
+
+      const newlyAdded: AlumniData['locations'] = [];
+      for (const item of toGeocode) {
+        try {
+          const res = await geocodeOne(`${item.key}, Philippines`);
+          const k = item.key.toLowerCase();
+          if (res) {
+            cache[k] = { lat: res.lat, lon: res.lon };
+            localStorage.setItem(cacheKey, JSON.stringify(cache));
+            const college = ['IBM','ICS','ITE'].includes((item.row.college || '').toUpperCase()) ? (item.row.college as string) : 'Other';
+            const status = (item.row.status as any) || 'active';
+            newlyAdded.push({ id: String(item.row.id), name: getName(item.row), position: [res.lat, res.lon], college: college as any, status });
+          }
+        } catch (e) {
+          // ignore errors; continue
+        }
+        await new Promise(r => setTimeout(r, 350));
+      }
+
+      if (newlyAdded.length > 0) {
+        setAlumniData(prev => prev ? { ...prev, locations: [...prev.locations, ...newlyAdded] } : { stats, activity: [], locations: newlyAdded });
+      }
     };
 
     const loadDashboard = async () => {
@@ -341,8 +402,8 @@ const Dashboard = () => {
           </Grid>
 
           <Grid item xs={12} md={8}>
-            <Card sx={{ height: 800 }}>
-              <CardContent sx={{ height: '100%' }}>
+            <Card sx={{ height: 'auto' }}>
+              <CardContent>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Typography variant="h6" gutterBottom>
                     Alumni Locations
@@ -361,7 +422,7 @@ const Dashboard = () => {
                     </Select>
                   </FormControl>
                 </div>
-                <div style={{ height: '85%', width: '100%', position: 'relative' }}>
+                <div style={{ height: 500, width: '100%', position: 'relative' }}>
                   <MapContainer
                     center={mapCenter}
                     zoom={initialZoom}
