@@ -15,7 +15,7 @@ type ActivityRow = {
   user_id: string | null
   target_user_id?: string | null
   action: string
-  details: string
+  details: any
   user_agent?: string | null
   created_at: string
   actor_name?: string
@@ -71,10 +71,39 @@ const columns: GridColDef[] = [
       return <Chip size="small" label={val} color={color as any} />
     },
   },
-  { field: 'details', headerName: 'Details', flex: 1.4, minWidth: 260 },
+  // Move the full name columns backward (to the right) by placing User Agent first
+  // Removed User Agent column per request (to hide long Mozilla strings)
   { field: 'actor_name', headerName: 'Actor', flex: 0.9, minWidth: 200 },
   { field: 'target_name', headerName: 'Target User', flex: 0.9, minWidth: 200 },
-  { field: 'user_agent', headerName: 'User Agent', flex: 1.2, minWidth: 260 },
+  {
+    field: 'details',
+    headerName: 'Details',
+    flex: 1.4,
+    minWidth: 260,
+    renderCell: (p) => {
+      const v = p.value as any;
+      if (v == null) return '';
+      // Hide the unhelpful "[object Object]" output; show strings only
+      if (typeof v === 'string') {
+        if (v.trim() === '[object Object]') return '';
+        // If it's a JSON string, try to show a concise summary
+        try {
+          const obj = JSON.parse(v);
+          // Prefer a common message field if present
+          const hint = obj?.message || obj?.note || obj?.info || obj?.reason;
+          return <Typography variant="body2">{hint ? String(hint) : ''}</Typography>;
+        } catch {
+          return <Typography variant="body2">{v}</Typography>;
+        }
+      }
+      // If it's an object, try to pick a useful field; otherwise keep it empty
+      if (typeof v === 'object') {
+        const hint = (v as any)?.message || (v as any)?.note || (v as any)?.info || (v as any)?.reason || '';
+        return <Typography variant="body2">{hint}</Typography>;
+      }
+      return <Typography variant="body2">{String(v)}</Typography>;
+    }
+  },
 ]
 
 export default function ActivityLogs() {
@@ -93,7 +122,7 @@ export default function ActivityLogs() {
     try {
       let query = supabase
         .from(ACTIVITY_TABLE)
-        .select('id, user_id, target_user_id, action, details, user_agent, created_at')
+        .select('id, user_id, target_user_id, action, details, created_at')
 
       if (actionFilter !== 'all') {
         query = query.eq('action', actionFilter)
@@ -133,11 +162,21 @@ export default function ActivityLogs() {
         }
       }
 
-      const withNames = baseRows.map((r) => ({
-        ...r,
-        actor_name: r.user_id ? nameMap.get(r.user_id) ?? r.user_id : '',
-        target_name: r.target_user_id ? nameMap.get(r.target_user_id) ?? r.target_user_id : '',
-      }))
+      const withNames = baseRows.map((r) => {
+        const actorId = r.user_id || ''
+        const targetId = r.target_user_id || ''
+        const actorName = actorId ? (nameMap.get(actorId) ?? actorId) : ''
+        const targetNameRaw = targetId ? (nameMap.get(targetId) ?? targetId) : ''
+        // Hide duplicate names: if same user acted on themselves or same name/id
+        const samePerson = actorId && targetId && actorId === targetId
+        const sameName = !!actorName && !!targetNameRaw && actorName === targetNameRaw
+        const target_name = (samePerson || sameName || String(r.action).toLowerCase() === 'profile_update') ? '' : targetNameRaw
+        return {
+          ...r,
+          actor_name: actorName,
+          target_name,
+        }
+      })
 
       setRows(withNames)
     } catch (e: any) {
@@ -170,10 +209,9 @@ export default function ActivityLogs() {
     return rows.filter((r) => {
       return (
         (r.action ?? '').toLowerCase().includes(q) ||
-        (r.details ?? '').toLowerCase().includes(q) ||
+        (String(r.details ?? '')).toLowerCase().includes(q) ||
         (r.user_id ?? '').toLowerCase().includes(q) ||
-        (r.target_user_id ?? '').toLowerCase().includes(q) ||
-        (r.user_agent ?? '').toLowerCase().includes(q)
+        (r.target_user_id ?? '').toLowerCase().includes(q)
       )
     })
   }, [rows, search])

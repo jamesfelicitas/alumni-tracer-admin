@@ -16,6 +16,7 @@ import ActivityLogs from './pages/ActivityLogs';
 import UserProfileTable from './pages/UserProfileTable';
 import HistoryIcon from '@mui/icons-material/History';
 import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import CampaignIcon from '@mui/icons-material/Campaign';
 import AlumniVerificationAdmin from './pages/AlumniVerificationAdmin';
 import DeletionRequestsAdmin from './pages/DeletionRequestsAdmin';
 import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
@@ -101,7 +102,7 @@ export default function HomeLayout() {
     { text: 'Activity Logs', path: '/home/activity-logs', icon: <HistoryIcon /> },
     { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
     { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
-    { text: 'Announcements Admin', path: '/home/admin/announcements', icon: <VerifiedUserIcon /> },
+  { text: 'Announcement Panel', path: '/home/admin/announcements', icon: <CampaignIcon /> },
     { text: 'Deletion Requests', path: '/home/deletion-requests', icon: <HistoryIcon /> },
   ];
 

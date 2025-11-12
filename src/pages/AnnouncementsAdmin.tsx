@@ -154,7 +154,7 @@ export default function AnnouncementsAdmin() {
     <Card>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
-          <Typography variant="h5" fontWeight={700}>Manage Announcements</Typography>
+          <Typography variant="h5" fontWeight={700}>Announcement Panel</Typography>
           <Stack direction="row" spacing={1}>
             <Button onClick={load} startIcon={<RefreshIcon />} disabled={loading}>Reload</Button>
             <Button onClick={openCreate} variant="contained" startIcon={<AddIcon />}>New</Button>
