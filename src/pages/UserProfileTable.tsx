@@ -199,6 +199,11 @@ export default function UserProfileTable() {
           User Profile Data
         </Typography>
 
+        {/* Show total who answered */}
+        <Typography variant="subtitle1" sx={{ mb: 1 }}>
+          Total Who Answered: {filteredRows.length}
+        </Typography>
+
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
           <TextField
             fullWidth
