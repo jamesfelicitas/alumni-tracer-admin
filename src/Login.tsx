@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import {
-  Avatar,
   Box,
   Button,
   Checkbox,
@@ -16,7 +15,7 @@ import {
 } from '@mui/material';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
+import logo from './assets/logo.jpeg';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { useNavigate } from 'react-router-dom';
@@ -68,10 +67,11 @@ const Login: React.FC = () => {
     <Container maxWidth="sm" sx={{ mt: 8 }}>
       <Paper elevation={6} sx={{ p: 4, borderRadius: 3 }}>
         <Stack spacing={3} alignItems="center">
-          <Avatar sx={{ width: 72, height: 72, bgcolor: 'transparent' }}>
-            <AdminPanelSettingsIcon sx={{ fontSize: 40 }} />
-          </Avatar>
-
+          <img
+            src={logo}
+            alt="Logo"
+            style={{ width: 150, height: 150, objectFit: 'contain', marginBottom: 16 }}
+          />
           <Box textAlign="center">
             <Typography variant="h4" component="h1" fontWeight={700} gutterBottom>
               Welcome Back
