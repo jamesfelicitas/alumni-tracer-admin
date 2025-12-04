@@ -12,7 +12,7 @@ import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
 import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
-import CreateUser from './pages/CreateUser';
+// import CreateUser from './pages/CreateUser';
 import ActivityLogs from './pages/ActivityLogs';
 import UserProfileTable from './pages/UserProfileTable';
 import HistoryIcon from '@mui/icons-material/History';
@@ -101,7 +101,7 @@ export default function HomeLayout() {
     { text: 'Dashboard', path: '/home/dashboard', icon: <DashboardCustomizeOutlined/> },
     { text: 'Data Tables', path: '/home/datatables', icon: <TableChart /> },
   { text: 'User Profiles', path: '/home/user-profile-table', icon: <PeopleAltIcon /> },
-    { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
+    // { text: 'Create User', path: '/home/create-user', icon: <PersonAddAlt1Icon /> },
     { text: 'Activity Logs', path: '/home/activity-logs', icon: <HistoryIcon /> },
     { text: 'Alumni Verification', path: '/home/alumni-verification', icon: <VerifiedUserIcon /> },
     { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
@@ -197,7 +197,7 @@ export default function HomeLayout() {
         <Routes>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/datatables" element={<DataTables />} />
-          <Route path="/create-user" element={<CreateUser />} />
+          {/* <Route path="/create-user" element={<CreateUser />} /> */}
           <Route path="/user-profile-table" element={<UserProfileTable />} />
           <Route path="/activity-logs" element={<ActivityLogs />} />
           <Route path="/alumni-verification" element={<AlumniVerificationAdmin />} />
