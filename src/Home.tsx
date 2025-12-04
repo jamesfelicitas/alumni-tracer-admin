@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Routes, Route, Link, useNavigate, Navigate } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { styled, useTheme } from '@mui/material/styles';
 import MuiAppBar, { AppBarProps as MuiAppBarProps } from '@mui/material/AppBar';
 import { Box, Drawer, CssBaseline, Toolbar, List, Typography, Divider, IconButton, Menu, MenuItem, ListItem, ListItemButton, ListItemIcon, ListItemText, Avatar, Stack } from '@mui/material';
@@ -65,6 +65,11 @@ export default function HomeLayout() {
   const [open, setOpen] = React.useState(true); // Set to true to open the drawer by default
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null); // State for the menu anchor
   const navigate = useNavigate();
+  const location = useLocation();
+  const showDashboardTitle = React.useMemo(
+    () => location.pathname.startsWith('/home/dashboard'),
+    [location.pathname]
+  );
 
   const handleDrawerOpen = () => setOpen(true);
   const handleDrawerClose = () => setOpen(false);
@@ -118,7 +123,9 @@ export default function HomeLayout() {
           <IconButton color="inherit" onClick={handleDrawerOpen} edge="start" sx={{ mr: 2, ...(open && { display: 'none' }) }}>
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap>Dashboard</Typography>
+          {showDashboardTitle && (
+            <Typography variant="h6" noWrap>Dashboard</Typography>
+          )}
 
           {/* Profile Icon Button on AppBar */}
           <IconButton color="inherit" onClick={handleMenuClick} sx={{ ml: 'auto' }}>
