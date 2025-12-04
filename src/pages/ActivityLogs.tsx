@@ -82,6 +82,9 @@ const columns: GridColDef[] = [
     flex: 1.4,
     minWidth: 260,
     renderCell: (p) => {
+      const action = String((p as any)?.row?.action ?? '').toLowerCase()
+      // Hide login/logout boilerplate messages
+      if (action === 'login' || action === 'logout') return ''
       const v = p.value as any;
       if (v == null) return '';
       // Hide the unhelpful "[object Object]" output; show strings only
@@ -126,7 +129,8 @@ export default function ActivityLogs() {
         .select('id, user_id, target_user_id, action, details, created_at')
 
       if (actionFilter !== 'all') {
-        query = query.eq('action', actionFilter)
+        // Normalize to lowercase to match standardized actions
+        query = query.eq('action', String(actionFilter).toLowerCase())
       }
       if (startDate) {
         query = query.gte('created_at', `${startDate}T00:00:00.000Z`)
@@ -172,47 +176,40 @@ export default function ActivityLogs() {
         const samePerson = actorId && targetId && actorId === targetId
         const sameName = !!actorName && !!targetNameRaw && actorName === targetNameRaw
         const target_name = (samePerson || sameName || String(r.action).toLowerCase() === 'profile_update') ? '' : targetNameRaw
-        return {
-          ...r,
-          actor_name: actorName,
-          target_name,
-        }
+        return { ...r, actor_name: actorName, target_name }
       })
 
       setRows(withNames)
     } catch (e: any) {
-      setErrorMsg(e?.message || String(e))
-      setRows([])
+      console.error('Failed to load activity logs:', e)
+      setErrorMsg(e?.message ?? 'Failed to load activity logs')
     } finally {
       setLoading(false)
     }
   }, [actionFilter, startDate, endDate])
 
   React.useEffect(() => {
+    // initial load and on filters change
     load()
-  }, [load])
-
-  // Realtime: auto-refresh when activity_logs change
-  React.useEffect(() => {
-    const channel = supabase
-      .channel('activity-logs-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: ACTIVITY_TABLE }, () => {
-        // debounce minimal
-        load()
-      })
-      .subscribe()
-    return () => { supabase.removeChannel(channel) }
   }, [load])
 
   const filteredRows = React.useMemo(() => {
     if (!search.trim()) return rows
     const q = search.toLowerCase()
     return rows.filter((r) => {
+      const action = (r.action ?? '').toLowerCase()
+      const userId = (r.user_id ?? '').toLowerCase()
+      const targetId = (r.target_user_id ?? '').toLowerCase()
+      const actorName = r.actor_name ? String(r.actor_name).toLowerCase() : ''
+      const detailsText = typeof r.details === 'string'
+        ? r.details.toLowerCase()
+        : JSON.stringify(r.details ?? {}).toLowerCase()
       return (
-        (r.action ?? '').toLowerCase().includes(q) ||
-        (String(r.details ?? '')).toLowerCase().includes(q) ||
-        (r.user_id ?? '').toLowerCase().includes(q) ||
-        (r.target_user_id ?? '').toLowerCase().includes(q)
+        action.includes(q) ||
+        userId.includes(q) ||
+        targetId.includes(q) ||
+        actorName.includes(q) ||
+        detailsText.includes(q)
       )
     })
   }, [rows, search])
@@ -244,12 +241,14 @@ export default function ActivityLogs() {
     };
     const lines = [headers.join(',')];
     for (const r of filteredRows) {
+      const a = String(r.action ?? '').toLowerCase()
+      const details = (a === 'login' || a === 'logout') ? '' : r.details
       lines.push([
         escape(r.created_at),
         escape(r.action),
         escape(r.actor_name),
         escape(r.target_name),
-        escape(r.details)
+        escape(details)
       ].join(','));
     }
     const csv = lines.join('\n');

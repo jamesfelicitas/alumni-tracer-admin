@@ -18,7 +18,8 @@ export async function logActivityRaw(
 		target_user_id,
 		user_agent: typeof navigator !== 'undefined' ? navigator.userAgent : null,
 	})
-	if (error) console.error('Activity log insert failed:', error.message)
+	if (error) console.error('Activity log insert failed:', { action, user_id, error: error.message })
+	else console.debug('Activity log insert ok:', { action, user_id })
 }
 
 /** Helper dedicated to verification events for consistency. */
@@ -28,7 +29,7 @@ export async function logVerification(
 	target_user_id: string,
 	nextVerified: boolean
 ) {
-	const action = nextVerified ? 'Verify Profile' : 'Unverify Profile'
+	const action = nextVerified ? 'verify_profile' : 'unverify_profile'
 	const details = nextVerified ? 'Marked profile as verified' : 'Marked profile as unverified'
 	return logActivityRaw(supabase, actor_user_id, action, details, target_user_id)
 }
@@ -42,7 +43,7 @@ export async function logActivity(
 ) {
 	const { data } = await supabase.auth.getUser()
 	const uid = data.user?.id
-	await logActivityRaw(supabase, uid, action, details, target_user_id)
+	await logActivityRaw(supabase, uid, action.toLowerCase(), details, target_user_id)
 }
 
 /** Sign in with password and log 'Login' on success. */
@@ -51,8 +52,29 @@ export async function signInWithPasswordLog(
 	params: { email: string; password: string }
 ) {
 	const res = await supabase.auth.signInWithPassword(params)
+	// On success, record a detailed login event
 	if (!res.error && res.data.user) {
-		await logActivityRaw(supabase, res.data.user.id, 'Login', 'User signed in')
+		await logActivityRaw(
+			supabase,
+			res.data.user.id,
+			'login',
+			JSON.stringify({ message: 'User signed in', email: params.email, source: 'web' })
+		)
+		return res
+	}
+	// On failure, record a login failed event without user_id
+	// Note: Depending on RLS, this may be visible only to admins.
+	if (res.error) {
+		try {
+			const { data: current } = await supabase.auth.getUser()
+			const uid = current?.user?.id
+			await logActivityRaw(
+				supabase,
+				uid ?? null,
+				'login_failed',
+				JSON.stringify({ message: res.error.message, email: params.email })
+			)
+		} catch {}
 	}
 	return res
 }
@@ -62,7 +84,12 @@ export async function signOutWithLog(supabase: SupabaseClient) {
 	const { data } = await supabase.auth.getUser()
 	const uid = data.user?.id
 	if (uid) {
-		await logActivityRaw(supabase, uid, 'Logout', 'User signed out')
+		await logActivityRaw(
+			supabase,
+			uid,
+			'logout',
+			JSON.stringify({ message: 'User signed out' })
+		)
 	}
 	return supabase.auth.signOut()
 }
@@ -81,7 +108,7 @@ export async function updateProfileWithLog(
 		await logActivityRaw(
 			supabase,
 			user.id,
-			'Edit Profile',
+			'profile_update',
 			`Updated fields: ${Object.keys(updates).join(', ')}`,
 			user.id
 		)
