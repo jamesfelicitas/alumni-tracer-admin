@@ -23,6 +23,8 @@ import DeletionRequestsAdmin from './pages/DeletionRequestsAdmin';
 import AnnouncementsAdmin from './pages/AnnouncementsAdmin';
 import Announcements from './pages/Announcements';
 import AnnouncementDetail from './pages/AnnouncementDetail';
+import Reports from './pages/Reports';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 
 
 const drawerWidth = 240;
@@ -105,6 +107,7 @@ export default function HomeLayout() {
     { text: 'Announcements', path: '/home/announcements', icon: <HistoryIcon /> },
   { text: 'Announcement Panel', path: '/home/admin/announcements', icon: <CampaignIcon /> },
     { text: 'Deletion Requests', path: '/home/deletion-requests', icon: <HistoryIcon /> },
+    { text: 'Reports', path: '/home/reports', icon: <AssessmentIcon /> },
   ];
 
   return (
@@ -202,6 +205,7 @@ export default function HomeLayout() {
           <Route path="/announcements/:id" element={<AnnouncementDetail />} />
           <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
           <Route path="/deletion-requests" element={<DeletionRequestsAdmin />} />
+          <Route path="/reports" element={<Reports />} />
           {/* <Route path="/datacharts" element={<DataCharts />} /> */}
           <Route path="/" element={<Navigate to="/home/dashboard" replace />} />
         </Routes>
