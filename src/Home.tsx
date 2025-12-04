@@ -9,7 +9,7 @@ import { supabase } from './supabaseClient';
 import { signOutWithLog } from './activityLog';
 import { DashboardCustomizeOutlined, Logout, TableChart } from '@mui/icons-material';
 import PeopleAltIcon from '@mui/icons-material/PeopleAlt';
-import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
+// import PersonAddAlt1Icon from '@mui/icons-material/PersonAddAlt1';
 import Dashboard from './pages/Dashboard';
 import DataTables from './pages/DataTables';
 // import CreateUser from './pages/CreateUser';
