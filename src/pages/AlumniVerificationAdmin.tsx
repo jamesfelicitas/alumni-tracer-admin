@@ -16,6 +16,7 @@ type Row = {
   is_verified: boolean | null
   verified_at: string | null
   verified_by: string | null
+  role?: string | null
 }
 
 function fmtDate(d?: string | null) {
@@ -35,7 +36,7 @@ export default function AlumniVerificationAdmin() {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('id,first_name,last_name,course,graduation_year,is_verified,verified_at,verified_by')
+        .select('id,first_name,last_name,course,graduation_year,is_verified,verified_at,verified_by,role')
         .order('last_name', { ascending: true })
         .limit(1000)
       if (error) throw error
@@ -75,6 +76,65 @@ export default function AlumniVerificationAdmin() {
       setError(e.message || 'Update failed')
       // revert
       setRows(prev => prev.map(x => x.id === r.id ? r : x))
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const markNotAlumni = async (r: Row) => {
+    setSavingId(r.id)
+    // optimistic UI: set Not Alumni and unverify
+    setRows(prev => prev.map(x => x.id === r.id
+      ? { ...x, is_verified: false, verified_at: null, role: 'not_alumni' }
+      : x
+    ))
+    try {
+      const { data: u } = await supabase.auth.getUser()
+      const adminId = u.user?.id || null
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_verified: false, verified_at: null, verified_by: adminId, role: 'not_alumni' })
+        .eq('id', r.id)
+      if (error) throw error
+      await logActivity(
+        supabase,
+        'Mark Not Alumni',
+        `alumni_id=${r.id}; name=${(r.last_name || '')}, ${(r.first_name || '')}`,
+        r.id
+      )
+    } catch (e: any) {
+      setError(e.message || 'Update failed')
+      // revert
+      setRows(prev => prev.map(x => x.id === r.id ? r : x))
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const undoNotAlumni = async (r: Row) => {
+    setSavingId(r.id)
+    // optimistic UI: clear Not Alumni flag, keep unverified
+    const prev = r
+    setRows(prevRows => prevRows.map(x => x.id === r.id
+      ? { ...x, role: null, is_verified: false, verified_at: null, verified_by: null }
+      : x
+    ))
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: null, is_verified: false, verified_at: null, verified_by: null })
+        .eq('id', r.id)
+      if (error) throw error
+      await logActivity(
+        supabase,
+        'Undo Not Alumni',
+        `alumni_id=${r.id}; name=${(r.last_name || '')}, ${(r.first_name || '')}`,
+        r.id
+      )
+    } catch (e: any) {
+      setError(e.message || 'Update failed')
+      // revert
+      setRows(prevRows => prevRows.map(x => x.id === r.id ? prev : x))
     } finally {
       setSavingId(null)
     }
@@ -138,21 +198,47 @@ export default function AlumniVerificationAdmin() {
                   <TableCell>{r.course || '—'}</TableCell>
                   <TableCell>{r.graduation_year ?? '—'}</TableCell>
                   <TableCell>
-                    {isVerified
-                      ? <Chip size="small" color="success" label="Verified" />
-                      : <Chip size="small" color="warning" label="Pending" />}
+                    {r.role === 'not_alumni'
+                      ? <Chip size="small" color="error" label="Not Alumni" />
+                      : (isVerified
+                          ? <Chip size="small" color="success" label="Verified" />
+                          : <Chip size="small" color="warning" label="Pending" />)}
                   </TableCell>
                   <TableCell>{fmtDate(r.verified_at)}</TableCell>
                   <TableCell align="right">
-                    <Button
-                      size="small"
-                      variant={isVerified ? 'outlined' : 'contained'}
-                      color={isVerified ? 'warning' : 'success'}
-                      onClick={() => toggleVerify(r)}
-                      disabled={savingId === r.id}
-                    >
-                      {isVerified ? 'Mark Pending' : 'Mark Verified'}
-                    </Button>
+                    {r.role === 'not_alumni' ? (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="warning"
+                        onClick={() => undoNotAlumni(r)}
+                        disabled={savingId === r.id}
+                      >
+                        Undo Not Alumni
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          size="small"
+                          variant={isVerified ? 'outlined' : 'contained'}
+                          color={isVerified ? 'warning' : 'success'}
+                          onClick={() => toggleVerify(r)}
+                          disabled={savingId === r.id}
+                        >
+                          {isVerified ? 'Mark Pending' : 'Mark Verified'}
+                        </Button>
+                        <Button
+                          size="small"
+                          sx={{ ml: 1 }}
+                          variant="outlined"
+                          color="error"
+                          onClick={() => markNotAlumni(r)}
+                          disabled={savingId === r.id}
+                        >
+                          Mark Not Alumni
+                        </Button>
+                      </>
+                    )}
                   </TableCell>
                 </TableRow>
               )
