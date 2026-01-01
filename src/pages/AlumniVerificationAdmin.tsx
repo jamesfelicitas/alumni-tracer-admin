@@ -4,6 +4,7 @@ import {
   Table, TableHead, TableRow, TableCell, TableBody, Chip, IconButton, Tooltip, Button
 } from '@mui/material'
 import RefreshIcon from '@mui/icons-material/Refresh'
+import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import { supabase } from '../supabaseClient'
 import { logActivity } from '../activityLog'
 
@@ -17,6 +18,10 @@ type Row = {
   verified_at: string | null
   verified_by: string | null
   role?: string | null
+  // source info for "Not Alumni" flag
+  flagged_by_name?: string | null
+  flagged_by_role?: string | null
+  flagged_at?: string | null
 }
 
 function fmtDate(d?: string | null) {
@@ -40,7 +45,56 @@ export default function AlumniVerificationAdmin() {
         .order('last_name', { ascending: true })
         .limit(1000)
       if (error) throw error
-      setRows((data ?? []) as Row[])
+
+      const base = (data ?? []) as Row[]
+      const flaggedIds = base.filter(r => r.role === 'not_alumni').map(r => r.id)
+      let enriched = base
+
+      if (flaggedIds.length > 0) {
+        const { data: logs, error: logErr } = await supabase
+          .from('activity_logs')
+          .select('target_user_id,user_id,action,created_at')
+          .eq('action', 'mark not alumni')
+          .in('target_user_id', flaggedIds)
+          .order('created_at', { ascending: false })
+
+        if (!logErr && logs) {
+          const latestByTarget = new Map<string, { target_user_id: string; user_id: string | null; created_at: string | null }>()
+          for (const l of logs as any[]) {
+            const t = l.target_user_id
+            if (t && !latestByTarget.has(t)) latestByTarget.set(t, { target_user_id: t, user_id: l.user_id ?? null, created_at: l.created_at ?? null })
+          }
+
+          const actorIds = Array.from(new Set(Array.from(latestByTarget.values()).map(v => v.user_id).filter(Boolean))) as string[]
+          const actors = new Map<string, { name: string; role: string | null }>()
+          if (actorIds.length > 0) {
+            const { data: profs } = await supabase
+              .from('profiles')
+              .select('id,first_name,last_name,role')
+              .in('id', actorIds)
+            for (const p of (profs ?? []) as any[]) {
+              const name = [p.first_name, p.last_name].filter(Boolean).join(' ')
+              actors.set(p.id, { name, role: p.role ?? null })
+            }
+          }
+
+          enriched = base.map(r => {
+            const log = latestByTarget.get(r.id)
+            if (r.role === 'not_alumni' && log) {
+              const actor = log.user_id ? actors.get(log.user_id) : undefined
+              return {
+                ...r,
+                flagged_by_name: actor?.name ?? (log.user_id ?? null),
+                flagged_by_role: actor?.role ?? null,
+                flagged_at: log.created_at ?? null,
+              }
+            }
+            return r
+          })
+        }
+      }
+
+      setRows(enriched)
     } catch (e: any) {
       setError(e.message || 'Failed to load')
     } finally { setLoading(false) }
@@ -51,7 +105,6 @@ export default function AlumniVerificationAdmin() {
   const toggleVerify = async (r: Row) => {
     const nextVerified = !r.is_verified
     setSavingId(r.id)
-    // optimistic UI
     setRows(prev => prev.map(x => x.id === r.id
       ? { ...x, is_verified: nextVerified, verified_at: nextVerified ? new Date().toISOString() : null }
       : x
@@ -74,7 +127,6 @@ export default function AlumniVerificationAdmin() {
       )
     } catch (e: any) {
       setError(e.message || 'Update failed')
-      // revert
       setRows(prev => prev.map(x => x.id === r.id ? r : x))
     } finally {
       setSavingId(null)
@@ -83,7 +135,6 @@ export default function AlumniVerificationAdmin() {
 
   const markNotAlumni = async (r: Row) => {
     setSavingId(r.id)
-    // optimistic UI: set Not Alumni and unverify
     setRows(prev => prev.map(x => x.id === r.id
       ? { ...x, is_verified: false, verified_at: null, role: 'not_alumni' }
       : x
@@ -102,9 +153,9 @@ export default function AlumniVerificationAdmin() {
         `alumni_id=${r.id}; name=${(r.last_name || '')}, ${(r.first_name || '')}`,
         r.id
       )
+      await load()
     } catch (e: any) {
       setError(e.message || 'Update failed')
-      // revert
       setRows(prev => prev.map(x => x.id === r.id ? r : x))
     } finally {
       setSavingId(null)
@@ -113,10 +164,9 @@ export default function AlumniVerificationAdmin() {
 
   const undoNotAlumni = async (r: Row) => {
     setSavingId(r.id)
-    // optimistic UI: clear Not Alumni flag, keep unverified
     const prev = r
     setRows(prevRows => prevRows.map(x => x.id === r.id
-      ? { ...x, role: null, is_verified: false, verified_at: null, verified_by: null }
+      ? { ...x, role: null, is_verified: false, verified_at: null, verified_by: null, flagged_by_name: null, flagged_by_role: null, flagged_at: null }
       : x
     ))
     try {
@@ -131,9 +181,9 @@ export default function AlumniVerificationAdmin() {
         `alumni_id=${r.id}; name=${(r.last_name || '')}, ${(r.first_name || '')}`,
         r.id
       )
+      await load()
     } catch (e: any) {
       setError(e.message || 'Update failed')
-      // revert
       setRows(prevRows => prevRows.map(x => x.id === r.id ? prev : x))
     } finally {
       setSavingId(null)
@@ -144,7 +194,7 @@ export default function AlumniVerificationAdmin() {
     const q = search.trim().toLowerCase()
     if (!q) return true
     const name = `${r.first_name || ''} ${r.last_name || ''}`.toLowerCase()
-    const status = r.is_verified ? 'verified' : 'pending'
+    const status = r.role === 'not_alumni' ? 'not alumni' : (r.is_verified ? 'verified' : 'pending')
     return (
       name.includes(q) ||
       (r.course || '').toLowerCase().includes(q) ||
@@ -157,7 +207,7 @@ export default function AlumniVerificationAdmin() {
     <Card>
       <CardContent>
         <Stack direction={{ xs: 'column', md: 'row' }} justifyContent="space-between" spacing={2} mb={2}>
-          <Typography variant="h5" fontWeight={700}>Alumni Verification</Typography>
+          <Typography variant="h5" fontWeight={700}>Alumni Verification (Admin)</Typography>
           <Stack direction="row" spacing={1} alignItems="center">
             <TextField
               size="small"
@@ -185,6 +235,8 @@ export default function AlumniVerificationAdmin() {
               <TableCell>Year Graduated</TableCell>
               <TableCell>Status</TableCell>
               <TableCell>Verified At</TableCell>
+              <TableCell>Flagged By</TableCell>
+              <TableCell>MARK NOT ALUMNI BY COORDINATOR</TableCell>
               <TableCell align="right">Action</TableCell>
             </TableRow>
           </TableHead>
@@ -205,6 +257,24 @@ export default function AlumniVerificationAdmin() {
                           : <Chip size="small" color="warning" label="Pending" />)}
                   </TableCell>
                   <TableCell>{fmtDate(r.verified_at)}</TableCell>
+                  <TableCell>
+                    {r.role === 'not_alumni'
+                      ? (
+                        <>
+                          <div>{r.flagged_by_role || '—'}</div>
+                          <div style={{ fontSize: 12, color: '#666' }}>{r.flagged_by_name || '—'}</div>
+                          <div style={{ fontSize: 12, color: '#666' }}>{fmtDate(r.flagged_at)}</div>
+                        </>
+                      )
+                      : '—'}
+                  </TableCell>
+                  <TableCell>
+                    {r.role === 'not_alumni' && (r.flagged_by_role || '').toLowerCase() === 'coordinator' ? (
+                      <Tooltip title={`Marked by ${r.flagged_by_name ?? 'Coordinator'} on ${fmtDate(r.flagged_at)}`}>
+                        <CheckCircleIcon color="success" fontSize="small" />
+                      </Tooltip>
+                    ) : '—'}
+                  </TableCell>
                   <TableCell align="right">
                     {r.role === 'not_alumni' ? (
                       <Button
@@ -245,7 +315,7 @@ export default function AlumniVerificationAdmin() {
             })}
             {filtered.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   No records.
                 </TableCell>
               </TableRow>
